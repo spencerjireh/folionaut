@@ -9,8 +9,8 @@ description: Model Context Protocol server and chat tool integration
 
 Folionaut provides AI tools through two interfaces:
 
-1. **MCP Server** -- a [Model Context Protocol](https://modelcontextprotocol.io/) server for AI assistants like Claude Desktop. Supports 6 tools (read + write) via **two transports**: stdio (local) and Streamable HTTP (remote).
-2. **Chat Service** -- an OpenAI function-calling integration that gives the chat endpoint access to the 3 read-only tools.
+1. **MCP Server** -- a [Model Context Protocol](https://modelcontextprotocol.io/) server for AI assistants like Claude Desktop. Supports 7 tools (read + write) via **two transports**: stdio (local) and Streamable HTTP (remote).
+2. **Chat Service** -- an OpenAI function-calling integration that gives the chat endpoint access to the 4 read-only tools.
 
 Both share the same core tool implementations in `src/tools/core/`, ensuring consistent behavior.
 
@@ -27,8 +27,8 @@ flowchart TB
         HTTP["Streamable HTTP Transport\nPOST/GET/DELETE /api/mcp\n(remote, Express-mounted)"]
     end
 
-    MCP["MCP Server\n6 tools (read + write)\nMCP SDK response format"]
-    Chat["Chat Service\n3 tools (read only)\nOpenAI function calling"]
+    MCP["MCP Server\n7 tools (read + write)\nMCP SDK response format"]
+    Chat["Chat Service\n4 tools (read only)\nOpenAI function calling"]
 
     SharedTools --> MCP
     SharedTools --> Chat
@@ -64,24 +64,35 @@ This transport enables remote MCP clients, CI/CD integrations, and any HTTP-capa
 
 ## Content Types
 
-All tools operate on the unified content model:
+All tools operate on the unified content model. Content types are **free-form strings** matching `/^[a-z0-9-]+$/` (max 100 characters). There is no fixed enum -- you can use any type string. Common examples include `project`, `experience`, `education`, `skill`, `about`, `contact`, `blog-post`, `certification`, `testimonial`, etc.
 
-| Type | Description |
-|------|-------------|
-| `project` | Portfolio projects with title, description, tags, links |
-| `experience` | Work experience history |
-| `education` | Educational background |
-| `skill` | Skills grouped by category |
-| `about` | About page content |
-| `contact` | Contact information and social links |
+Use the `list_types` tool to discover which types currently exist in the database.
 
-See [Content Model Reference](/architecture/content-model) for detailed data schemas.
+See [Content Model Reference](/architecture/content-model) for details on the data column and custom content types.
 
 ---
 
 ## Shared Read Tools
 
-These 3 tools are available in both the MCP server and the chat service.
+These 4 tools are available in both the MCP server and the chat service.
+
+### `list_types`
+
+List all distinct content types that exist in the database.
+
+```typescript
+// No input parameters
+
+interface ListTypesOutput {
+  types: string[]    // e.g., ["project", "experience", "blog-post", "certification"]
+}
+```
+
+**Example invocation:**
+```
+User: "What kinds of content do you have?"
+AI calls: list_types()
+```
 
 ### `list_content`
 
@@ -89,7 +100,7 @@ List content items by type with optional status filter.
 
 ```typescript
 interface ListContentInput {
-  type: 'project' | 'experience' | 'education' | 'skill' | 'about' | 'contact'
+  type: string                                  // Content type (e.g., "project", "blog-post")
   status?: 'draft' | 'published' | 'archived'  // default: 'published'
   limit?: number                                // default: 50, max: 100
 }
@@ -121,20 +132,22 @@ Get a single content item by type and slug.
 
 ```typescript
 interface GetContentInput {
-  type: 'project' | 'experience' | 'education' | 'skill' | 'about' | 'contact'
+  type: string     // Content type (e.g., "project", "blog-post")
   slug: string
 }
 
 interface GetContentOutput {
-  id: string
-  slug: string
-  type: string
-  data: Record<string, unknown>
-  status: string
-  version: number
-  sortOrder: number
-  createdAt: string
-  updatedAt: string
+  item: {
+    id: string
+    slug: string
+    type: string
+    data: Record<string, unknown>
+    status: string
+    version: number
+    sortOrder: number
+    createdAt: string
+    updatedAt: string
+  }
 }
 ```
 
@@ -151,7 +164,7 @@ Search content by query across title, description, name, and other text fields.
 ```typescript
 interface SearchContentInput {
   query: string                                  // Search query
-  type?: 'project' | 'experience' | 'education' | 'skill' | 'about' | 'contact'
+  type?: string                                  // Optional type filter (e.g., "project")
   limit?: number                                 // default: 10, max: 50
 }
 
@@ -180,13 +193,13 @@ These tools are only available through the MCP server (not in chat).
 
 ### `create_content`
 
-Create new content with type-specific data validation.
+Create new content. Returns `{ item: {...} }` with the created content.
 
 ```typescript
 interface CreateContentInput {
-  type: 'project' | 'experience' | 'education' | 'skill' | 'about' | 'contact'
+  type: string                                   // Any string matching /^[a-z0-9-]+$/
   slug?: string                                  // Auto-generated from title/name if not provided
-  data: Record<string, unknown>                  // Must match type-specific schema
+  data: Record<string, unknown>                  // Any JSON object
   status?: 'draft' | 'published' | 'archived'   // default: 'draft'
   sortOrder?: number                             // default: 0
 }
@@ -194,7 +207,7 @@ interface CreateContentInput {
 
 ### `update_content`
 
-Update existing content with version history tracking.
+Update existing content with version history tracking. Returns `{ item: {...} }` with the updated content.
 
 ```typescript
 interface UpdateContentInput {
@@ -208,7 +221,7 @@ interface UpdateContentInput {
 
 ### `delete_content`
 
-Soft delete content (can be restored later).
+Soft delete content (can be restored later). Returns `{ id, type, slug }` of the deleted content.
 
 ```typescript
 interface DeleteContentInput {
@@ -220,7 +233,7 @@ interface DeleteContentInput {
 
 ## MCP Resources
 
-Resources are URIs that AI can read to get content. Unlike tools, resources are read-only and follow a URI pattern.
+Resources are URIs that AI can read to get content. Unlike tools, resources are read-only and follow a URI pattern. Resource templates use **dynamic discovery** -- the available types are determined at runtime from the database, not from a hardcoded list.
 
 | URI | Description | Returns |
 |-----|-------------|---------|
@@ -228,13 +241,13 @@ Resources are URIs that AI can read to get content. Unlike tools, resources are 
 | `folionaut://content/{type}` | Content by type | JSON array of content for specified type |
 | `folionaut://content/{type}/{slug}` | Single content item | Full content item JSON |
 
-**Supported types in URI:**
+The `{type}` parameter accepts any valid content type string. The MCP server uses `ResourceTemplate` with a `list` callback that queries the database for all distinct types, so clients automatically discover available content types without any hardcoded configuration.
+
+**Example URIs:**
 - `folionaut://content/project`
-- `folionaut://content/experience`
-- `folionaut://content/education`
-- `folionaut://content/skill`
-- `folionaut://content/about`
-- `folionaut://content/contact`
+- `folionaut://content/blog-post`
+- `folionaut://content/certification`
+- `folionaut://content/project/folionaut`
 
 ## MCP Prompts
 
@@ -276,7 +289,7 @@ interface CompareSkillsInput {
 
 ## Chat Integration
 
-The chat service (`POST /api/v1/chat`) uses OpenAI function calling to give the AI assistant access to the same 3 read tools. The chat service also includes:
+The chat service (`POST /api/v1/chat`) uses OpenAI function calling to give the AI assistant access to the same 4 read tools. The chat service also includes:
 
 - **Input guardrails** -- validates and sanitizes user messages before sending to the LLM
 - **Output guardrails** -- checks LLM responses for PII leakage before returning to the user
@@ -434,7 +447,7 @@ flowchart TB
     Repo --> DB[(Turso DB)]
 ```
 
-This ensures consistent data access, shared validation schemas, and version history tracking across both transports.
+This ensures consistent data access and version history tracking across both transports.
 
 **Schema conversion** for OpenAI function calling:
 

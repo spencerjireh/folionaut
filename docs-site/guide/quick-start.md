@@ -138,6 +138,10 @@ curl -X POST http://localhost:3000/api/v1/admin/content \
   }'
 ```
 
+::: tip
+The `type` field is not limited to a fixed set of values -- any lowercase alphanumeric string with hyphens works (e.g., `blog-post`, `certification`, `testimonial`). The `data` field accepts any JSON object, so you can structure your content however you like.
+:::
+
 ### Fetch Content
 
 ```bash

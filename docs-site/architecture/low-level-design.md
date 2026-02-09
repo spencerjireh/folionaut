@@ -64,6 +64,7 @@ flowchart TB
     subgraph Tools["src/tools/"]
         Types["types.ts<br/>ToolResult&lt;T&gt;, ContentItem types"]
         subgraph Core["core/"]
+            ListTypes["list-types<br/>listTypes()"]
             List["list-content<br/>listContent()"]
             Get["get-content<br/>getContent()"]
             Search["search-content<br/>searchContent()"]
@@ -88,6 +89,7 @@ flowchart TB
 | File | Purpose |
 |------|---------|
 | `types.ts` | Shared types: `ToolResult<T>`, `ContentItem`, result types |
+| `core/list-types.ts` | `listTypes()` - List all distinct content types |
 | `core/list-content.ts` | `listContent()` - List content by type with filters |
 | `core/get-content.ts` | `getContent()` - Get single item by type and slug |
 | `core/search-content.ts` | `searchContent()` - Search content by keywords |
@@ -96,9 +98,9 @@ flowchart TB
 **Schema conversion:**
 
 ```typescript
-// Zod schema in src/mcp/types.ts
+// Zod schema in src/validation/tool.schemas.ts
 export const ListContentInputSchema = z.object({
-  type: z.enum(['project', 'experience', 'education', 'skill', 'about', 'contact']),
+  type: z.string().regex(/^[a-z0-9-]+$/).max(100),
   status: z.enum(['draft', 'published', 'archived']).default('published'),
   limit: z.number().int().min(1).max(100).default(50),
 })

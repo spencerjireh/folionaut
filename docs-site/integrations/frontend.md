@@ -29,16 +29,17 @@ The fastest way to load all portfolio content:
 
 ```typescript
 const response = await fetch('https://api.yoursite.com/api/v1/content/bundle')
-const bundle = await response.json()
+const { data: bundle } = await response.json()
 
-// bundle contains:
+// bundle is Record<string, ContentItem[]>, e.g.:
 // {
-//   projects: [...],
-//   experiences: [...],
-//   education: [...],
-//   skills: [...],
-//   about: {...} | null,
-//   contact: {...} | null
+//   "project": [...],
+//   "experience": [...],
+//   "education": [...],
+//   "skill": [...],
+//   "about": [...],
+//   "contact": [...],
+//   "blog-post": [...]   // any custom types also appear
 // }
 ```
 
@@ -55,67 +56,21 @@ A type-safe client wrapper for the Portfolio API.
 
 export interface ContentItem {
   id: string
-  type: 'project' | 'experience' | 'education' | 'skill' | 'about' | 'contact'
+  type: string             // Free-form string matching /^[a-z0-9-]+$/
   slug: string
-  data: Record<string, unknown>
+  data: Record<string, unknown>  // Any JSON object -- structure depends on type
   status: 'draft' | 'published' | 'archived'
   version: number
   sortOrder: number
   createdAt: string
   updatedAt: string
+  deletedAt: string | null
 }
 
-export interface Project extends ContentItem {
-  type: 'project'
-  data: {
-    title: string
-    description: string
-    content?: string
-    tags: string[]
-    links?: {
-      github?: string
-      live?: string
-      demo?: string
-    }
-    coverImage?: string
-    featured: boolean
-  }
-}
-
-export interface Skill {
-  name: string
-  category: 'language' | 'framework' | 'tool' | 'soft'
-  icon?: string
-  proficiency?: 1 | 2 | 3 | 4 | 5
-}
-
-export interface Experience {
-  company: string
-  role: string
-  description?: string
-  startDate: string
-  endDate: string | null
-  location?: string
-  type?: 'full-time' | 'part-time' | 'contract' | 'freelance'
-  skills: string[]
-}
-
-export interface ContactConfig {
-  name: string
-  title: string
-  email: string
-  social: Record<string, string>
-  chatEnabled: boolean
-}
-
-export interface ContentBundle {
-  projects: ContentItem[]
-  experiences: ContentItem[]
-  education: ContentItem[]
-  skills: ContentItem[]
-  about: ContentItem | null
-  contact: ContentItem | null
-}
+// The bundle is a dynamic record keyed by content type.
+// All values are arrays. Keys correspond to the raw type strings
+// in the database (e.g., "project", "experience", "blog-post").
+export type ContentBundle = Record<string, ContentItem[]>
 
 export interface ChatMessage {
   id: string
@@ -137,11 +92,13 @@ export interface ChatResponse {
 }
 
 export interface ApiError {
-  error: string
-  code: string
-  requestId: string
-  fields?: Record<string, string[]>
-  retryAfter?: number
+  error: {
+    code: string
+    message: string
+    requestId?: string
+    fields?: Record<string, string[]>
+    retryAfter?: number
+  }
 }
 ```
 
@@ -149,7 +106,7 @@ export interface ApiError {
 
 A full TypeScript client wrapping these endpoints should be implemented in your frontend repository. Key features to include:
 
-- Custom error class extending `Error` with `code`, `status`, `requestId`, `retryAfter`
+- Custom error class extending `Error` with `code`, `status`, `requestId`, `retryAfter` (parsed from `response.error.*`)
 - ETag support for bundle caching (304 handling)
 - Admin key header injection for protected endpoints
 - Idempotency key support for mutations
@@ -159,7 +116,7 @@ A full TypeScript client wrapping these endpoints should be implemented in your 
 ```typescript
 // Fetch all content
 const response = await fetch('/api/v1/content/bundle')
-const bundle: ContentBundle = await response.json()
+const { data: bundle }: { data: ContentBundle } = await response.json()
 
 // Send chat message with error handling
 try {
@@ -233,7 +190,8 @@ export function usePortfolio() {
 
 // Usage in components
 function ProjectList() {
-  const { projects } = usePortfolio()
+  const bundle = usePortfolio()
+  const projects = bundle['project'] ?? []
   return projects.map(p => <ProjectCard key={p.id} project={p} />)
 }
 ```
@@ -270,7 +228,7 @@ import { portfolioApi } from '@/lib/api-client'
 
 export async function generateStaticParams() {
   const bundle = await portfolioApi.getBundle()
-  return bundle.projects.map(p => ({ slug: p.slug }))
+  return (bundle['project'] ?? []).map(p => ({ slug: p.slug }))
 }
 
 export const revalidate = 300 // Revalidate every 5 minutes
@@ -297,7 +255,7 @@ When building a chat component, handle these concerns:
 |---------|----------------|
 | **Visitor ID** | Generate a unique `visitorId` per browser (e.g., UUID stored in localStorage) |
 | **Session tracking** | The backend manages sessions automatically based on `visitorId` |
-| **Error handling** | Check for `RATE_LIMITED` code (429), display `Retry-After` header to user |
+| **Error handling** | Check for `RATE_LIMIT_EXCEEDED` code (429), display `Retry-After` header to user |
 | **Loading state** | Disable input during API call |
 | **Optimistic UI** | Add user message to list immediately before API response |
 
@@ -419,7 +377,7 @@ async function handleApiCall<T>(fn: () => Promise<T>): Promise<T | null> {
         // Redirect to 404 or show not found state
         return null
 
-      case 'RATE_LIMITED':
+      case 'RATE_LIMIT_EXCEEDED':
         // Show rate limit UI
         toast.error(`Please wait ${error.retryAfter}s before trying again`)
         return null

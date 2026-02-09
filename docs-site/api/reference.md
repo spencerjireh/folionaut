@@ -57,7 +57,6 @@ curl -X POST -H "X-Admin-Key: your-api-key" \
 | `X-Request-Id` | Unique request identifier |
 | `ETag` | Entity tag for caching |
 | `Cache-Control` | Caching directives |
-| `X-RateLimit-Remaining` | Remaining rate limit tokens |
 | `Retry-After` | Seconds to wait (when rate limited) |
 
 ### HTTP Status Codes
@@ -71,16 +70,18 @@ curl -X POST -H "X-Admin-Key: your-api-key" \
 | 401 | Unauthorized |
 | 404 | Not Found |
 | 409 | Conflict (e.g., duplicate slug) |
+| 413 | Payload Too Large (body exceeds 100kb) |
 | 429 | Rate Limited |
 | 500 | Internal Server Error |
 | 502 | Bad Gateway (LLM unavailable) |
+| 504 | Request Timeout |
 
 ### Rate Limiting
 
-The chat endpoint uses token bucket rate limiting per IP:
+Token bucket rate limiting is applied per IP:
 
-- **Chat endpoint**: 5 tokens capacity (default), refills at 0.333 tokens/second (~1 per 3 seconds)
-- Configurable via `RATE_LIMIT_CAPACITY` and `RATE_LIMIT_REFILL_RATE` env vars
+- **Chat endpoint**: 5 tokens capacity (default), refills at 0.333 tokens/second (~1 per 3 seconds). Configurable via `RATE_LIMIT_CAPACITY` and `RATE_LIMIT_REFILL_RATE` env vars.
+- **Content endpoints**: 60 tokens capacity (default), refills at 10 tokens/second. Configurable via `CONTENT_RATE_LIMIT_CAPACITY` and `CONTENT_RATE_LIMIT_REFILL_RATE` env vars.
 
 When rate limited:
 
@@ -104,10 +105,10 @@ GET /api/v1/admin/content?limit=10&offset=20
 
 ### Filtering
 
-Content can be filtered by type and status:
+Content can be filtered by type:
 
 ```
-GET /api/v1/content?type=project&status=published
+GET /api/v1/content?type=project
 ```
 
 ### Caching
@@ -157,6 +158,7 @@ curl -H "If-None-Match: abc123" \
 | Method | Endpoint | Description |
 |--------|----------|-------------|
 | GET | `/api/v1/admin/content` | List all content (including drafts) |
+| GET | `/api/v1/admin/content/:id` | Get content by ID |
 | POST | `/api/v1/admin/content` | Create content |
 | PUT | `/api/v1/admin/content/:id` | Update content |
 | DELETE | `/api/v1/admin/content/:id` | Delete content |
@@ -191,28 +193,33 @@ List content items with optional filtering.
 
 | Parameter | Type | Default | Description |
 |-----------|------|---------|-------------|
-| `type` | string | - | Filter by content type (`project`, `experience`, `education`, `skill`, `about`, `contact`) |
-| `status` | string | `published` | Filter by status (`draft`, `published`, `archived`) |
+| `type` | string | - | Filter by content type. Any string matching `/^[a-z0-9-]+$/` (e.g., `project`, `experience`, `blog-post`, `certification`) |
+
+::: info
+This endpoint always returns published content only. To list drafts or archived content, use the admin endpoint `GET /api/v1/admin/content`.
+:::
 
 **Response**
 
 ```json
-[
-  {
-    "id": "content_abc123",
-    "type": "project",
-    "slug": "my-project",
-    "data": {
-      "title": "My Project",
-      "description": "A great project"
-    },
-    "status": "published",
-    "version": 1,
-    "sortOrder": 0,
-    "createdAt": "2025-01-25T10:00:00Z",
-    "updatedAt": "2025-01-25T10:00:00Z"
-  }
-]
+{
+  "data": [
+    {
+      "id": "content_abc123",
+      "type": "project",
+      "slug": "my-project",
+      "data": {
+        "title": "My Project",
+        "description": "A great project"
+      },
+      "status": "published",
+      "version": 1,
+      "sortOrder": 0,
+      "createdAt": "2025-01-25T10:00:00Z",
+      "updatedAt": "2025-01-25T10:00:00Z"
+    }
+  ]
+}
 ```
 
 ### GET /content/:type/:slug
@@ -223,28 +230,30 @@ Get a single content item by type and slug.
 
 | Parameter | Type | Description |
 |-----------|------|-------------|
-| `type` | string | Content type (`project`, `experience`, `education`, `skill`, `about`, `contact`) |
+| `type` | string | Content type (any string matching `/^[a-z0-9-]+$/`) |
 | `slug` | string | URL-friendly identifier |
 
 **Response**
 
 ```json
 {
-  "id": "content_abc123",
-  "type": "project",
-  "slug": "my-project",
   "data": {
-    "title": "My Project",
-    "description": "A great project",
-    "content": "## Overview\n\nThis project...",
-    "tags": ["typescript", "express"],
-    "featured": true
-  },
-  "status": "published",
-  "version": 3,
-  "sortOrder": 1,
-  "createdAt": "2025-01-25T10:00:00Z",
-  "updatedAt": "2025-01-26T15:30:00Z"
+    "id": "content_abc123",
+    "type": "project",
+    "slug": "my-project",
+    "data": {
+      "title": "My Project",
+      "description": "A great project",
+      "content": "## Overview\n\nThis project...",
+      "tags": ["typescript", "express"],
+      "featured": true
+    },
+    "status": "published",
+    "version": 3,
+    "sortOrder": 1,
+    "createdAt": "2025-01-25T10:00:00Z",
+    "updatedAt": "2025-01-26T15:30:00Z"
+  }
 }
 ```
 
@@ -256,17 +265,21 @@ Get all published content organized by type. See [Content Model - Content Bundle
 
 ```json
 {
-  "projects": [...],
-  "experiences": [...],
-  "education": [...],
-  "skills": [...],
-  "about": { "id": "...", "type": "about", "slug": "about", "data": {...}, ... },
-  "contact": { "id": "...", "type": "contact", "slug": "contact", "data": {...}, ... }
+  "data": {
+    "project": [...],
+    "experience": [...],
+    "education": [...],
+    "skill": [...],
+    "about": [...],
+    "contact": [...],
+    "blog-post": [...],
+    "certification": [...]
+  }
 }
 ```
 
 ::: tip
-`about` and `contact` are singleton items (or `null` if not published). All other fields are arrays.
+The bundle is a dynamic `Record<string, ContentWithData[]>`. Keys correspond to the raw content type strings in the database, and all values are arrays. The set of keys depends on which types exist in your database -- custom types appear automatically.
 :::
 
 ---
@@ -360,15 +373,46 @@ Create new content.
 
 ```json
 {
-  "id": "content_new123",
-  "type": "project",
-  "slug": "new-project",
-  "data": {...},
-  "status": "draft",
-  "version": 1,
-  "sortOrder": 0,
-  "createdAt": "2025-01-26T10:00:00Z",
-  "updatedAt": "2025-01-26T10:00:00Z"
+  "data": {
+    "id": "content_new123",
+    "type": "project",
+    "slug": "new-project",
+    "data": {...},
+    "status": "draft",
+    "version": 1,
+    "sortOrder": 0,
+    "createdAt": "2025-01-26T10:00:00Z",
+    "updatedAt": "2025-01-26T10:00:00Z"
+  }
+}
+```
+
+### GET /admin/content/:id
+
+Get a single content item by ID, including drafts and archived items.
+
+**Path Parameters**
+
+| Parameter | Type | Description |
+|-----------|------|-------------|
+| `id` | string | Content ID |
+
+**Response**
+
+```json
+{
+  "data": {
+    "id": "content_abc123",
+    "type": "project",
+    "slug": "my-project",
+    "data": {...},
+    "status": "draft",
+    "version": 2,
+    "sortOrder": 0,
+    "createdAt": "2025-01-25T10:00:00Z",
+    "updatedAt": "2025-01-26T10:00:00Z",
+    "deletedAt": null
+  }
 }
 ```
 
@@ -390,7 +434,7 @@ Update existing content.
 
 **Response**
 
-Returns the updated content item with incremented version.
+Returns the updated content item wrapped in `{ "data": {...} }` with incremented version.
 
 ### DELETE /admin/content/:id
 
@@ -406,18 +450,20 @@ Get version history for a content item.
 **Response**
 
 ```json
-[
-  {
-    "id": "history_xyz789",
-    "contentId": "content_abc123",
-    "version": 3,
-    "data": {...},
-    "changeType": "updated",
-    "changedBy": "admin",
-    "changeSummary": "Updated title, description",
-    "createdAt": "2025-01-26T15:30:00Z"
-  }
-]
+{
+  "data": [
+    {
+      "id": "history_xyz789",
+      "contentId": "content_abc123",
+      "version": 3,
+      "data": {...},
+      "changeType": "updated",
+      "changedBy": "admin",
+      "changeSummary": "Updated title, description",
+      "createdAt": "2025-01-26T15:30:00Z"
+    }
+  ]
+}
 ```
 
 ### POST /admin/content/:id/restore
@@ -434,7 +480,7 @@ Restore content to a previous version.
 
 **Response**
 
-Returns the content item with the restored data and a new version number.
+Returns the content item wrapped in `{ "data": {...} }` with the restored data and a new version number.
 
 ---
 
@@ -545,9 +591,9 @@ For full details on available MCP tools, resources, and prompts, see the [MCP Se
 ```typescript
 interface ContentRow {
   id: string
-  type: 'project' | 'experience' | 'education' | 'skill' | 'about' | 'contact'
+  type: string              // Free-form string matching /^[a-z0-9-]+$/ (max 100 chars)
   slug: string
-  data: Record<string, unknown>
+  data: Record<string, unknown>  // Any JSON object
   status: 'draft' | 'published' | 'archived'
   version: number
   sortOrder: number
@@ -557,7 +603,7 @@ interface ContentRow {
 }
 ```
 
-See [Content Model Reference](/architecture/content-model) for detailed type-specific data schemas.
+See [Content Model Reference](/architecture/content-model) for details on the data column and custom content types.
 
 ### ChatResponse
 
@@ -584,11 +630,14 @@ interface ChatResponse {
 
 ```typescript
 interface ErrorResponse {
-  error: string
-  code: string
-  requestId: string
-  fields?: Record<string, string[]>  // For validation errors
-  retryAfter?: number                // For rate limit errors
+  error: {
+    code: string
+    message: string
+    requestId?: string
+    fields?: Record<string, string[]>   // For validation errors
+    retryAfter?: number                 // For rate limit errors
+    stack?: string                      // Development only
+  }
 }
 ```
 
@@ -597,9 +646,11 @@ interface ErrorResponse {
 | Code | HTTP Status | Description |
 |------|-------------|-------------|
 | `VALIDATION_ERROR` | 400 | Invalid request body or parameters |
+| `BAD_REQUEST` | 400 | Malformed JSON or invalid request syntax |
 | `UNAUTHORIZED` | 401 | Missing or invalid admin key |
 | `NOT_FOUND` | 404 | Resource not found |
 | `CONFLICT` | 409 | Duplicate slug or version conflict |
-| `RATE_LIMITED` | 429 | Rate limit exceeded |
-| `INTERNAL_ERROR` | 500 | Unexpected server error |
+| `PAYLOAD_TOO_LARGE` | 413 | Request body exceeds 100kb limit |
+| `RATE_LIMIT_EXCEEDED` | 429 | Rate limit exceeded |
+| `INTERNAL_SERVER_ERROR` | 500 | Unexpected server error |
 | `LLM_ERROR` | 502 | LLM provider unavailable |

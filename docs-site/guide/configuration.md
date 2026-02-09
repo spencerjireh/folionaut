@@ -45,8 +45,10 @@ If `REDIS_URL` is not set, the application falls back to in-memory caching. This
 
 | Variable | Default | Description |
 |----------|---------|-------------|
-| `RATE_LIMIT_CAPACITY` | `5` | Token bucket capacity |
-| `RATE_LIMIT_REFILL_RATE` | `0.333` | Tokens per second |
+| `RATE_LIMIT_CAPACITY` | `5` | Chat endpoint token bucket capacity |
+| `RATE_LIMIT_REFILL_RATE` | `0.333` | Chat endpoint tokens per second |
+| `CONTENT_RATE_LIMIT_CAPACITY` | `60` | Content endpoint token bucket capacity |
+| `CONTENT_RATE_LIMIT_REFILL_RATE` | `10` | Content endpoint tokens per second |
 
 ### LLM Provider
 
@@ -107,6 +109,8 @@ REDIS_URL=redis://localhost:6379
 # Rate Limiting
 RATE_LIMIT_CAPACITY=5
 RATE_LIMIT_REFILL_RATE=0.333
+CONTENT_RATE_LIMIT_CAPACITY=60
+CONTENT_RATE_LIMIT_REFILL_RATE=10
 
 # LLM
 LLM_PROVIDER=openai
