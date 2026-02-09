@@ -1,0 +1,807 @@
+openapi: 3.0.3
+info:
+  title: Folionaut API
+  description: REST API for portfolio website with CMS, AI chat, and MCP integration
+  version: 1.0.0
+  contact:
+    name: API Support
+
+servers:
+  - url: /api/v1
+    description: API v1
+
+tags:
+  - name: Content
+    description: Public content endpoints
+  - name: Chat
+    description: AI chat endpoints
+  - name: Health
+    description: Health and metrics endpoints
+  - name: Admin
+    description: Admin content management (requires API key)
+  - name: Admin Chat
+    description: Admin chat management (requires API key)
+
+paths:
+  /content:
+    get:
+      tags: [Content]
+      summary: List content items
+      parameters:
+        - name: type
+          in: query
+          schema:
+            type: string
+            enum: [project, experience, education, skill, about, contact]
+        - name: status
+          in: query
+          schema:
+            type: string
+            enum: [draft, published, archived]
+            default: published
+        - name: If-None-Match
+          in: header
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Content list
+          headers:
+            ETag:
+              schema:
+                type: string
+            Cache-Control:
+              schema:
+                type: string
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/ContentRow'
+        '304':
+          description: Not Modified (ETag match)
+
+  /content/{type}/{slug}:
+    get:
+      tags: [Content]
+      summary: Get single content item
+      parameters:
+        - name: type
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: slug
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: If-None-Match
+          in: header
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Content item
+          headers:
+            ETag:
+              schema:
+                type: string
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ContentRow'
+        '404':
+          description: Not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /content/bundle:
+    get:
+      tags: [Content]
+      summary: Get all content in one request
+      parameters:
+        - name: If-None-Match
+          in: header
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Content bundle
+          headers:
+            ETag:
+              schema:
+                type: string
+            Cache-Control:
+              schema:
+                type: string
+                example: max-age=300
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ContentBundle'
+        '304':
+          description: Not Modified
+
+  /chat:
+    post:
+      tags: [Chat]
+      summary: Send chat message
+      parameters:
+        - name: X-Visitor-Id
+          in: header
+          schema:
+            type: string
+        - name: X-Request-Id
+          in: header
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [message]
+              properties:
+                sessionId:
+                  type: string
+                  description: Existing session ID (optional for new sessions)
+                message:
+                  type: string
+                  maxLength: 2000
+      responses:
+        '200':
+          description: Chat response
+          headers:
+            X-Request-Id:
+              schema:
+                type: string
+            X-RateLimit-Limit:
+              schema:
+                type: integer
+            X-RateLimit-Remaining:
+              schema:
+                type: integer
+            X-RateLimit-Reset:
+              schema:
+                type: integer
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ChatResponse'
+        '429':
+          description: Rate limited
+          headers:
+            Retry-After:
+              schema:
+                type: integer
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RateLimitError'
+        '502':
+          description: LLM service unavailable
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /health:
+    get:
+      tags: [Health]
+      summary: Basic health check
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: ok
+                  timestamp:
+                    type: string
+                    format: date-time
+
+  /health/live:
+    get:
+      tags: [Health]
+      summary: Liveness probe
+      description: Returns 200 if process is running
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: ok
+
+  /health/ready:
+    get:
+      tags: [Health]
+      summary: Readiness probe
+      description: Returns 503 if critical services unavailable
+      responses:
+        '200':
+          description: Ready
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    enum: [ready, degraded]
+                  checks:
+                    type: object
+                    properties:
+                      database:
+                        type: string
+                        enum: [connected, error]
+                      cache:
+                        type: string
+                        enum: [redis, memory]
+                      llm:
+                        type: string
+                        enum: [available, circuit_open]
+        '503':
+          description: Not ready
+
+  /health/startup:
+    get:
+      tags: [Health]
+      summary: Startup probe
+      responses:
+        '200':
+          description: Started
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: started
+                  uptime:
+                    type: number
+                  version:
+                    type: string
+
+  /metrics:
+    get:
+      tags: [Health]
+      summary: Prometheus metrics
+      responses:
+        '200':
+          description: Prometheus text format
+          content:
+            text/plain:
+              schema:
+                type: string
+
+  /admin/content:
+    get:
+      tags: [Admin]
+      summary: List all content (including drafts)
+      security:
+        - adminKey: []
+      parameters:
+        - name: type
+          in: query
+          schema:
+            type: string
+        - name: includeDeleted
+          in: query
+          schema:
+            type: boolean
+            default: false
+      responses:
+        '200':
+          description: Content list
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/ContentRow'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+    post:
+      tags: [Admin]
+      summary: Create content
+      security:
+        - adminKey: []
+      parameters:
+        - name: Idempotency-Key
+          in: header
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateContentRequest'
+      responses:
+        '201':
+          description: Created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ContentRow'
+        '400':
+          description: Validation error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ValidationError'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '409':
+          description: Slug already exists
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /admin/content/{id}:
+    put:
+      tags: [Admin]
+      summary: Update content
+      security:
+        - adminKey: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: Idempotency-Key
+          in: header
+          schema:
+            type: string
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateContentRequest'
+      responses:
+        '200':
+          description: Updated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ContentRow'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          description: Not found
+
+    delete:
+      tags: [Admin]
+      summary: Delete content
+      security:
+        - adminKey: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: hard
+          in: query
+          schema:
+            type: boolean
+            default: false
+          description: Hard delete (permanent) vs soft delete
+      responses:
+        '200':
+          description: Deleted
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          description: Not found
+
+  /admin/content/{id}/history:
+    get:
+      tags: [Admin]
+      summary: Get content version history
+      security:
+        - adminKey: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 10
+      responses:
+        '200':
+          description: Version history
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/ContentHistoryEntry'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          description: Not found
+
+  /admin/content/{id}/restore:
+    post:
+      tags: [Admin]
+      summary: Restore content to previous version
+      security:
+        - adminKey: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: Idempotency-Key
+          in: header
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [version]
+              properties:
+                version:
+                  type: integer
+                  description: Version number to restore to
+      responses:
+        '200':
+          description: Restored
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ContentRow'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          description: Not found or version not found
+
+  /admin/chat/sessions:
+    get:
+      tags: [Admin Chat]
+      summary: List chat sessions
+      security:
+        - adminKey: []
+      parameters:
+        - name: status
+          in: query
+          schema:
+            type: string
+            enum: [active, ended]
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 50
+      responses:
+        '200':
+          description: Session list
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/ChatSession'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+  /admin/chat/sessions/{id}:
+    get:
+      tags: [Admin Chat]
+      summary: Get session with messages
+      security:
+        - adminKey: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Session details
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  session:
+                    $ref: '#/components/schemas/ChatSession'
+                  messages:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/ChatMessage'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          description: Not found
+
+    delete:
+      tags: [Admin Chat]
+      summary: Delete chat session
+      security:
+        - adminKey: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Deleted
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+components:
+  securitySchemes:
+    adminKey:
+      type: apiKey
+      in: header
+      name: X-Admin-Key
+
+  responses:
+    Unauthorized:
+      description: Missing or invalid admin key
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+
+  schemas:
+    ContentRow:
+      type: object
+      properties:
+        id:
+          type: string
+        type:
+          type: string
+          enum: [project, experience, education, skill, about, contact]
+        slug:
+          type: string
+          nullable: true
+        data:
+          type: object
+        status:
+          type: string
+          enum: [draft, published, archived]
+        version:
+          type: integer
+        sortOrder:
+          type: integer
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+        deletedAt:
+          type: string
+          format: date-time
+          nullable: true
+
+    ContentBundle:
+      type: object
+      properties:
+        projects:
+          type: array
+          items:
+            $ref: '#/components/schemas/ContentRow'
+        experiences:
+          type: array
+          items:
+            $ref: '#/components/schemas/ContentRow'
+        education:
+          type: array
+          items:
+            $ref: '#/components/schemas/ContentRow'
+        skills:
+          type: array
+          items:
+            $ref: '#/components/schemas/ContentRow'
+        about:
+          $ref: '#/components/schemas/ContentRow'
+          nullable: true
+        contact:
+          $ref: '#/components/schemas/ContentRow'
+          nullable: true
+
+    ContentHistoryEntry:
+      type: object
+      properties:
+        id:
+          type: string
+        contentId:
+          type: string
+        version:
+          type: integer
+        data:
+          type: object
+        changeType:
+          type: string
+          enum: [created, updated, deleted, restored]
+        changedBy:
+          type: string
+          nullable: true
+        changeSummary:
+          type: string
+          nullable: true
+        createdAt:
+          type: string
+          format: date-time
+
+    CreateContentRequest:
+      type: object
+      required: [type, data]
+      properties:
+        type:
+          type: string
+          enum: [project, experience, education, skill, about, contact]
+        slug:
+          type: string
+          pattern: ^[a-z0-9-]+$
+          description: Auto-generated from data.title if omitted
+        data:
+          type: object
+        status:
+          type: string
+          enum: [draft, published, archived]
+          default: draft
+        sortOrder:
+          type: integer
+          default: 0
+
+    UpdateContentRequest:
+      type: object
+      properties:
+        type:
+          type: string
+        slug:
+          type: string
+        data:
+          type: object
+        status:
+          type: string
+        sortOrder:
+          type: integer
+
+    ChatResponse:
+      type: object
+      properties:
+        sessionId:
+          type: string
+        message:
+          type: object
+          properties:
+            id:
+              type: string
+            role:
+              type: string
+              enum: [assistant]
+            content:
+              type: string
+        rateLimit:
+          type: object
+          properties:
+            remaining:
+              type: integer
+            resetAt:
+              type: string
+              format: date-time
+
+    ChatSession:
+      type: object
+      properties:
+        id:
+          type: string
+        visitorId:
+          type: string
+        ipHash:
+          type: string
+        userAgent:
+          type: string
+        messageCount:
+          type: integer
+        status:
+          type: string
+          enum: [active, ended]
+        startedAt:
+          type: string
+          format: date-time
+        lastActiveAt:
+          type: string
+          format: date-time
+        expiresAt:
+          type: string
+          format: date-time
+
+    ChatMessage:
+      type: object
+      properties:
+        id:
+          type: string
+        sessionId:
+          type: string
+        role:
+          type: string
+          enum: [user, assistant, system]
+        content:
+          type: string
+        tokensUsed:
+          type: integer
+        model:
+          type: string
+        createdAt:
+          type: string
+          format: date-time
+
+    Error:
+      type: object
+      properties:
+        error:
+          type: string
+        code:
+          type: string
+        requestId:
+          type: string
+
+    ValidationError:
+      allOf:
+        - $ref: '#/components/schemas/Error'
+        - type: object
+          properties:
+            fields:
+              type: object
+              additionalProperties:
+                type: array
+                items:
+                  type: string
+
+    RateLimitError:
+      allOf:
+        - $ref: '#/components/schemas/Error'
+        - type: object
+          properties:
+            retryAfter:
+              type: integer

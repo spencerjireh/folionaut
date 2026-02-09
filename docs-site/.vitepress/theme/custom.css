@@ -1,0 +1,125 @@
+:root {
+  /* Humanist Warm Slate Color Palette */
+  --vp-c-brand-1: hsl(200, 18%, 32%);
+  --vp-c-brand-2: hsl(200, 22%, 42%);
+  --vp-c-brand-3: hsl(200, 18%, 52%);
+  --vp-c-brand-soft: hsla(200, 18%, 32%, 0.14);
+
+  /* Warm-tinted backgrounds */
+  --vp-c-bg: hsl(30, 10%, 98%);
+  --vp-c-bg-alt: hsl(30, 8%, 95%);
+  --vp-c-bg-elv: hsl(0, 0%, 100%);
+  --vp-c-bg-soft: hsl(30, 10%, 96%);
+
+  /* Cool-tinted text for contrast */
+  --vp-c-text-1: hsl(210, 15%, 10%);
+  --vp-c-text-2: hsl(210, 12%, 28%);
+  --vp-c-text-3: hsl(210, 8%, 48%);
+
+  /* Custom accent colors */
+  --accent-primary: hsl(200, 18%, 32%);
+  --accent-hover: hsl(200, 22%, 42%);
+  --accent-subtle: hsla(200, 18%, 32%, 0.1);
+}
+
+.dark {
+  /* Dark mode warm slate palette */
+  --vp-c-brand-1: hsl(200, 25%, 55%);
+  --vp-c-brand-2: hsl(200, 22%, 45%);
+  --vp-c-brand-3: hsl(200, 18%, 38%);
+  --vp-c-brand-soft: hsla(200, 25%, 55%, 0.14);
+
+  /* Dark backgrounds with subtle warmth */
+  --vp-c-bg: hsl(220, 12%, 10%);
+  --vp-c-bg-alt: hsl(220, 10%, 12%);
+  --vp-c-bg-elv: hsl(220, 12%, 14%);
+  --vp-c-bg-soft: hsl(220, 10%, 16%);
+
+  /* Light text with warmth */
+  --vp-c-text-1: hsl(30, 10%, 92%);
+  --vp-c-text-2: hsl(30, 8%, 72%);
+  --vp-c-text-3: hsl(30, 6%, 52%);
+
+  /* Custom accent colors for dark mode */
+  --accent-primary: hsl(200, 25%, 55%);
+  --accent-hover: hsl(200, 28%, 65%);
+  --accent-subtle: hsla(200, 25%, 55%, 0.15);
+}
+
+/* Improve code block readability */
+.vp-doc div[class*='language-'] code {
+  font-size: 0.875rem;
+}
+
+/* ADR status badges */
+.adr-status {
+  display: inline-block;
+  padding: 0.25rem 0.5rem;
+  border-radius: 0.25rem;
+  font-size: 0.75rem;
+  font-weight: 600;
+  text-transform: uppercase;
+}
+
+.adr-status-accepted {
+  background-color: var(--vp-c-green-soft);
+  color: var(--vp-c-green-1);
+}
+
+.adr-status-proposed {
+  background-color: var(--vp-c-yellow-soft);
+  color: var(--vp-c-yellow-1);
+}
+
+.adr-status-deprecated {
+  background-color: var(--vp-c-red-soft);
+  color: var(--vp-c-red-1);
+}
+
+/* Mermaid diagram styles */
+.mermaid {
+  display: flex;
+  justify-content: center;
+  margin: 1.5rem 0;
+  padding: 1rem;
+  background-color: var(--vp-c-bg-soft);
+  border-radius: 8px;
+  overflow-x: auto;
+}
+
+.mermaid svg {
+  max-width: 100%;
+  height: auto;
+}
+
+/* Dark mode adjustments for Mermaid */
+.dark .mermaid {
+  background-color: var(--vp-c-bg-alt);
+}
+
+/* Responsive diagram sizing */
+@media (max-width: 768px) {
+  .mermaid {
+    padding: 0.5rem;
+    font-size: 0.85rem;
+  }
+}
+
+/* C4 diagram specific styles */
+.mermaid .person rect,
+.mermaid .system rect,
+.mermaid .container rect {
+  rx: 4;
+  ry: 4;
+}
+
+/* Sequence diagram improvements */
+.mermaid .actor {
+  font-weight: 500;
+}
+
+/* State diagram improvements */
+.mermaid .statediagram-state rect {
+  rx: 6;
+  ry: 6;
+}
