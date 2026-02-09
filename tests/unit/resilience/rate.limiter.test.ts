@@ -17,7 +17,7 @@ vi.mock('@/cache', () => ({
 }))
 
 vi.mock('@/events', () => ({
-  eventEmitter: mockEventEmitterRef.current,
+  get eventEmitter() { return mockEventEmitterRef.current },
 }))
 
 describe('RateLimiter', () => {
@@ -251,29 +251,40 @@ describe('RateLimiter', () => {
   })
 
   describe('emitRateLimitEvent', () => {
-    it('should call emit on the event emitter', async () => {
+    it('should emit chat:rate_limited with full payload', async () => {
       const rateLimiter = await createRateLimiterWithMocks()
 
-      // Call the method
       rateLimiter.emitRateLimitEvent('ip-hash', 'sess_123', 5)
 
-      // Verify the event emitter was called (the mock may be different due to module caching)
-      // Just verify the method runs without error
-      expect(rateLimiter.emitRateLimitEvent).toBeDefined()
+      expect(mockEventEmitter.emit).toHaveBeenCalledWith('chat:rate_limited', {
+        ipHash: 'ip-hash',
+        sessionId: 'sess_123',
+        retryAfter: 5,
+      })
     })
 
-    it('should handle missing parameters', async () => {
+    it('should default retryAfter to 0 when undefined', async () => {
       const rateLimiter = await createRateLimiterWithMocks()
 
-      // Should not throw
-      expect(() => rateLimiter.emitRateLimitEvent('ip-hash', undefined, undefined)).not.toThrow()
+      rateLimiter.emitRateLimitEvent('ip-hash', undefined, undefined)
+
+      expect(mockEventEmitter.emit).toHaveBeenCalledWith('chat:rate_limited', {
+        ipHash: 'ip-hash',
+        sessionId: undefined,
+        retryAfter: 0,
+      })
     })
 
     it('should handle only ipHash parameter', async () => {
       const rateLimiter = await createRateLimiterWithMocks()
 
-      // Should not throw
-      expect(() => rateLimiter.emitRateLimitEvent('ip-hash')).not.toThrow()
+      rateLimiter.emitRateLimitEvent('ip-hash')
+
+      expect(mockEventEmitter.emit).toHaveBeenCalledWith('chat:rate_limited', {
+        ipHash: 'ip-hash',
+        sessionId: undefined,
+        retryAfter: 0,
+      })
     })
   })
 

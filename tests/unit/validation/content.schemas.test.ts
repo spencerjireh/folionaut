@@ -372,34 +372,34 @@ describe('Content Validation Schemas', () => {
 
   describe('parseZodErrors', () => {
     it('should convert Zod errors to field map', () => {
-      try {
-        ProjectDataSchema.parse({ title: '' })
-      } catch (error) {
-        const fields = parseZodErrors(error as ZodError)
+      const result = ProjectDataSchema.safeParse({ title: '' })
+      expect(result.success).toBe(false)
+      if (!result.success) {
+        const fields = parseZodErrors(result.error)
         expect(fields).toHaveProperty('title')
         expect(fields).toHaveProperty('description')
       }
     })
 
     it('should handle nested path errors', () => {
-      try {
-        ProjectDataSchema.parse({
-          title: 'Test',
-          description: 'Desc',
-          links: { github: 'not-a-url' },
-        })
-      } catch (error) {
-        const fields = parseZodErrors(error as ZodError)
+      const result = ProjectDataSchema.safeParse({
+        title: 'Test',
+        description: 'Desc',
+        links: { github: 'not-a-url' },
+      })
+      expect(result.success).toBe(false)
+      if (!result.success) {
+        const fields = parseZodErrors(result.error)
         // Path is joined with dots, so check for the key directly
         expect('links.github' in fields).toBe(true)
       }
     })
 
     it('should use _root for root-level errors', () => {
-      try {
-        SlugSchema.parse('')
-      } catch (error) {
-        const fields = parseZodErrors(error as ZodError)
+      const result = SlugSchema.safeParse('')
+      expect(result.success).toBe(false)
+      if (!result.success) {
+        const fields = parseZodErrors(result.error)
         expect(fields).toHaveProperty('_root')
       }
     })

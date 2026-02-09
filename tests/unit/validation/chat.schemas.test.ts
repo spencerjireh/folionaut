@@ -148,10 +148,10 @@ describe('Chat Validation Schemas', () => {
 
   describe('parseZodErrors', () => {
     it('should convert Zod errors to field map', () => {
-      try {
-        SendMessageRequestSchema.parse({})
-      } catch (error) {
-        const fields = parseZodErrors(error as ZodError)
+      const result = SendMessageRequestSchema.safeParse({})
+      expect(result.success).toBe(false)
+      if (!result.success) {
+        const fields = parseZodErrors(result.error)
 
         expect(fields).toHaveProperty('message')
         expect(fields).toHaveProperty('visitorId')
@@ -161,22 +161,20 @@ describe('Chat Validation Schemas', () => {
     })
 
     it('should include error messages', () => {
-      try {
-        SendMessageRequestSchema.parse({ message: '', visitorId: 'test' })
-      } catch (error) {
-        const fields = parseZodErrors(error as ZodError)
+      const result = SendMessageRequestSchema.safeParse({ message: '', visitorId: 'test' })
+      expect(result.success).toBe(false)
+      if (!result.success) {
+        const fields = parseZodErrors(result.error)
 
         expect(fields.message[0]).toBe('Message is required')
       }
     })
 
     it('should handle multiple errors on same field', () => {
-      // Create a custom schema that would produce multiple errors
-      // In practice, Zod typically returns one error per field
-      try {
-        SendMessageRequestSchema.parse({ message: '', visitorId: '' })
-      } catch (error) {
-        const fields = parseZodErrors(error as ZodError)
+      const result = SendMessageRequestSchema.safeParse({ message: '', visitorId: '' })
+      expect(result.success).toBe(false)
+      if (!result.success) {
+        const fields = parseZodErrors(result.error)
 
         // Both fields should have errors
         expect(Object.keys(fields).length).toBeGreaterThanOrEqual(2)
@@ -187,10 +185,10 @@ describe('Chat Validation Schemas', () => {
       // Test with a simple string schema to get root-level error
       const { z } = await import('zod')
       const StringSchema = z.string().min(1)
-      try {
-        StringSchema.parse('')
-      } catch (error) {
-        const fields = parseZodErrors(error as ZodError)
+      const result = StringSchema.safeParse('')
+      expect(result.success).toBe(false)
+      if (!result.success) {
+        const fields = parseZodErrors(result.error)
 
         expect(fields).toHaveProperty('_root')
       }

@@ -129,7 +129,7 @@ describe('ChatService', () => {
           message: '',
           visitorId: 'visitor-123',
         })
-      ).toThrow()
+      ).toThrow('Invalid request body')
     })
 
     it('should throw ValidationError for missing visitorId', () => {
@@ -137,7 +137,7 @@ describe('ChatService', () => {
         chatService.validateSendMessageRequest({
           message: 'Hello',
         })
-      ).toThrow()
+      ).toThrow('Invalid request body')
     })
 
     it('should throw ValidationError for message over 2000 chars', () => {
@@ -146,7 +146,7 @@ describe('ChatService', () => {
           message: 'a'.repeat(2001),
           visitorId: 'visitor-123',
         })
-      ).toThrow()
+      ).toThrow('Invalid request body')
     })
   })
 
@@ -158,7 +158,7 @@ describe('ChatService', () => {
     })
 
     it('should throw ValidationError for invalid session ID format', () => {
-      expect(() => chatService.validateSessionIdParam({ id: 'invalid' })).toThrow()
+      expect(() => chatService.validateSessionIdParam({ id: 'invalid' })).toThrow('Invalid session ID')
     })
   })
 
@@ -177,7 +177,7 @@ describe('ChatService', () => {
     })
 
     it('should throw ValidationError for invalid status', () => {
-      expect(() => chatService.validateSessionListQuery({ status: 'invalid' })).toThrow()
+      expect(() => chatService.validateSessionListQuery({ status: 'invalid' })).toThrow('Invalid query parameters')
     })
   })
 
@@ -246,7 +246,7 @@ describe('ChatService', () => {
           ipHash: 'hash-123',
           message: 'Hello',
         })
-      ).rejects.toThrow()
+      ).rejects.toThrow('Rate limit exceeded')
 
       expect(mockRateLimiter.emitRateLimitEvent).toHaveBeenCalled()
     })
@@ -300,7 +300,7 @@ describe('ChatService', () => {
     it('should throw NotFoundError when session not found', async () => {
       mockChatRepository.findSession.mockResolvedValue(null)
 
-      await expect(chatService.getSession('sess_404')).rejects.toThrow()
+      await expect(chatService.getSession('sess_404')).rejects.toThrow('not found')
     })
   })
 
@@ -330,7 +330,7 @@ describe('ChatService', () => {
     it('should throw NotFoundError when session not found', async () => {
       mockChatRepository.findSession.mockResolvedValue(null)
 
-      await expect(chatService.endSession('sess_404')).rejects.toThrow()
+      await expect(chatService.endSession('sess_404')).rejects.toThrow('not found')
     })
 
     it('should not emit event if endSession returns false', async () => {

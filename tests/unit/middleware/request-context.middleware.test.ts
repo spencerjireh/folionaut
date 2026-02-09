@@ -82,16 +82,6 @@ describe('requestContextMiddleware', () => {
       middleware(mockReq as Request, mockRes as Response, mockNext)
     }))
 
-  it('should call next within context', () =>
-    new Promise<void>((resolve) => {
-      mockNext = vi.fn(() => {
-        expect(mockNext).toHaveBeenCalled()
-        resolve()
-      })
-
-      const middleware = requestContextMiddleware()
-      middleware(mockReq as Request, mockRes as Response, mockNext)
-    }))
 })
 
 describe('getRequestContext', () => {

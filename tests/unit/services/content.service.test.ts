@@ -102,21 +102,21 @@ describe('ContentService', () => {
     it('should throw NotFoundError when content not found', async () => {
       mockContentRepository.findBySlug.mockResolvedValue(null)
 
-      await expect(contentService.getByTypeAndSlug('project', 'not-found')).rejects.toThrow()
+      await expect(contentService.getByTypeAndSlug('project', 'not-found')).rejects.toThrow('not found')
     })
 
     it('should throw NotFoundError when content is not published', async () => {
       const draftContent = createContentItem({ status: 'draft' })
       mockContentRepository.findBySlug.mockResolvedValue(draftContent)
 
-      await expect(contentService.getByTypeAndSlug('project', 'draft-project')).rejects.toThrow()
+      await expect(contentService.getByTypeAndSlug('project', 'draft-project')).rejects.toThrow('not found')
     })
 
     it('should throw NotFoundError when content is archived', async () => {
       const archivedContent = createContentItem({ status: 'archived' })
       mockContentRepository.findBySlug.mockResolvedValue(archivedContent)
 
-      await expect(contentService.getByTypeAndSlug('project', 'archived-project')).rejects.toThrow()
+      await expect(contentService.getByTypeAndSlug('project', 'archived-project')).rejects.toThrow('not found')
     })
   })
 
@@ -153,7 +153,7 @@ describe('ContentService', () => {
     })
 
     it('should throw ValidationError for invalid type', () => {
-      expect(() => contentService.validateListQuery({ type: 'invalid' })).toThrow()
+      expect(() => contentService.validateListQuery({ type: 'invalid' })).toThrow('Invalid query parameters')
     })
   })
 
@@ -165,11 +165,11 @@ describe('ContentService', () => {
     })
 
     it('should throw ValidationError for invalid type', () => {
-      expect(() => contentService.validateTypeSlugParams({ type: 'invalid', slug: 'test' })).toThrow()
+      expect(() => contentService.validateTypeSlugParams({ type: 'invalid', slug: 'test' })).toThrow('Invalid parameters')
     })
 
     it('should throw ValidationError for missing slug', () => {
-      expect(() => contentService.validateTypeSlugParams({ type: 'project' })).toThrow()
+      expect(() => contentService.validateTypeSlugParams({ type: 'project' })).toThrow('Invalid parameters')
     })
   })
 
@@ -221,7 +221,7 @@ describe('ContentService', () => {
     it('should throw NotFoundError when not found', async () => {
       mockContentRepository.findByIdIncludingDeleted.mockResolvedValue(null)
 
-      await expect(contentService.getContentById('cnt_404')).rejects.toThrow()
+      await expect(contentService.getContentById('cnt_404')).rejects.toThrow('not found')
     })
   })
 
@@ -272,7 +272,7 @@ describe('ContentService', () => {
           },
           'admin'
         )
-      ).rejects.toThrow()
+      ).rejects.toThrow('Invalid content data')
     })
 
     it('should throw ConflictError when slug exists', async () => {
@@ -287,7 +287,7 @@ describe('ContentService', () => {
           },
           'admin'
         )
-      ).rejects.toThrow()
+      ).rejects.toThrow(/already exists|conflict/i)
     })
 
     it('should emit content:created event', async () => {
@@ -336,7 +336,7 @@ describe('ContentService', () => {
 
       await expect(
         contentService.updateContent('cnt_404', { status: 'published' }, 'admin')
-      ).rejects.toThrow()
+      ).rejects.toThrow('not found')
     })
 
     it('should throw ConflictError when changing to existing slug', async () => {
@@ -346,7 +346,7 @@ describe('ContentService', () => {
 
       await expect(
         contentService.updateContent('cnt_123', { slug: 'existing-slug' }, 'admin')
-      ).rejects.toThrow()
+      ).rejects.toThrow(/already exists|conflict/i)
     })
 
     it('should emit content:updated event with changed fields', async () => {
@@ -369,7 +369,7 @@ describe('ContentService', () => {
 
       await expect(
         contentService.updateContent('cnt_123', { status: 'published' }, 'admin')
-      ).rejects.toThrow()
+      ).rejects.toThrow('not found')
     })
   })
 
@@ -391,7 +391,7 @@ describe('ContentService', () => {
 
         await expect(
           contentService.deleteContent('cnt_404', false, 'admin')
-        ).rejects.toThrow()
+        ).rejects.toThrow('not found')
       })
 
       it('should emit content:deleted event with hard=false', async () => {
@@ -416,7 +416,7 @@ describe('ContentService', () => {
 
         await expect(
           contentService.deleteContent('cnt_123', false, 'admin')
-        ).rejects.toThrow()
+        ).rejects.toThrow('not found')
       })
     })
 
@@ -454,7 +454,7 @@ describe('ContentService', () => {
 
         await expect(
           contentService.deleteContent('cnt_123', true, 'admin')
-        ).rejects.toThrow()
+        ).rejects.toThrow('not found')
       })
     })
   })
@@ -495,7 +495,7 @@ describe('ContentService', () => {
     it('should throw NotFoundError when content not found', async () => {
       mockContentRepository.findByIdIncludingDeleted.mockResolvedValue(null)
 
-      await expect(contentService.getContentHistory('cnt_404', 50, 0)).rejects.toThrow()
+      await expect(contentService.getContentHistory('cnt_404', 50, 0)).rejects.toThrow('not found')
     })
   })
 
@@ -530,7 +530,7 @@ describe('ContentService', () => {
 
       await expect(
         contentService.restoreContentVersion('cnt_404', 1, 'admin')
-      ).rejects.toThrow()
+      ).rejects.toThrow('not found')
     })
 
     it('should throw NotFoundError when version not found', async () => {
@@ -540,7 +540,7 @@ describe('ContentService', () => {
 
       await expect(
         contentService.restoreContentVersion('cnt_123', 999, 'admin')
-      ).rejects.toThrow()
+      ).rejects.toThrow('not found')
     })
   })
 
@@ -578,7 +578,7 @@ describe('ContentService', () => {
       })
 
       it('should reject invalid content ID format', () => {
-        expect(() => contentService.validateContentIdParam({ id: 'invalid' })).toThrow()
+        expect(() => contentService.validateContentIdParam({ id: 'invalid' })).toThrow('Invalid content ID')
       })
     })
 
@@ -595,7 +595,7 @@ describe('ContentService', () => {
       it('should reject missing type', () => {
         expect(() =>
           contentService.validateCreateRequest({ data: { title: 'Test' } })
-        ).toThrow()
+        ).toThrow('Invalid request body')
       })
     })
 
@@ -634,7 +634,7 @@ describe('ContentService', () => {
       })
 
       it('should reject non-positive version', () => {
-        expect(() => contentService.validateRestoreRequest({ version: 0 })).toThrow()
+        expect(() => contentService.validateRestoreRequest({ version: 0 })).toThrow('Invalid request body')
       })
     })
 

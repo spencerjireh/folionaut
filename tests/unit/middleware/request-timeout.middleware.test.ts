@@ -38,29 +38,42 @@ describe('requestTimeoutMiddleware', () => {
   })
 
   it('should use default timeout of 30000ms', async () => {
-    const middleware = requestTimeoutMiddleware()
+    const setTimeoutSpy = vi.spyOn(global, 'setTimeout')
 
-    expect(middleware).toBeDefined()
-    expect(typeof middleware).toBe('function')
+    app.use(requestTimeoutMiddleware())
+    app.get('/default', (_req, res) => {
+      res.json({ status: 'ok' })
+    })
+
+    await request(app).get('/default')
+
+    const timeoutCall = setTimeoutSpy.mock.calls.find((call) => call[1] === 30000)
+    expect(timeoutCall).toBeDefined()
+
+    setTimeoutSpy.mockRestore()
   })
 
   it('should apply custom default timeout', async () => {
-    let receivedSignal: AbortSignal | undefined
+    const setTimeoutSpy = vi.spyOn(global, 'setTimeout')
 
     app.use(requestTimeoutMiddleware({ defaultTimeout: 100 }))
-    app.get('/slow', async (req: Request & { signal?: AbortSignal }, res, next) => {
-      receivedSignal = req.signal
-      await new Promise((resolve) => setTimeout(resolve, 50))
+    app.get('/slow', async (_req: Request, res) => {
+      await new Promise((resolve) => setTimeout(resolve, 10))
       res.json({ status: 'ok' })
     })
 
     const response = await request(app).get('/slow')
 
     expect(response.status).toBe(200)
-    expect(receivedSignal).toBeDefined()
+    const timeoutCall = setTimeoutSpy.mock.calls.find((call) => call[1] === 100)
+    expect(timeoutCall).toBeDefined()
+
+    setTimeoutSpy.mockRestore()
   })
 
   it('should apply route-specific timeout', async () => {
+    const setTimeoutSpy = vi.spyOn(global, 'setTimeout')
+
     app.use(
       requestTimeoutMiddleware({
         defaultTimeout: 1000,
@@ -74,24 +87,30 @@ describe('requestTimeoutMiddleware', () => {
       res.json({ route: 'normal' })
     })
 
-    const specialResponse = await request(app).get('/special')
-    const normalResponse = await request(app).get('/normal')
+    await request(app).get('/special')
+    const specialCall = setTimeoutSpy.mock.calls.find((call) => call[1] === 5000)
+    expect(specialCall).toBeDefined()
 
-    expect(specialResponse.status).toBe(200)
-    expect(normalResponse.status).toBe(200)
+    await request(app).get('/normal')
+    const normalCall = setTimeoutSpy.mock.calls.find((call) => call[1] === 1000)
+    expect(normalCall).toBeDefined()
+
+    setTimeoutSpy.mockRestore()
   })
 
   it('should clean up timeout on response finish', async () => {
+    const clearTimeoutSpy = vi.spyOn(global, 'clearTimeout')
+
     app.use(requestTimeoutMiddleware({ defaultTimeout: 1000 }))
     app.get('/cleanup', (_req, res) => {
       res.json({ status: 'done' })
     })
 
-    // Make multiple requests to ensure cleanup works
-    for (let i = 0; i < 5; i++) {
-      const response = await request(app).get('/cleanup')
-      expect(response.status).toBe(200)
-    }
+    await request(app).get('/cleanup')
+
+    expect(clearTimeoutSpy).toHaveBeenCalled()
+
+    clearTimeoutSpy.mockRestore()
   })
 })
 

@@ -114,15 +114,6 @@ describe('adminAuthMiddleware', () => {
   })
 
   describe('timing-safe comparison', () => {
-    it('should handle valid key correctly', () => {
-      const validKey = getTestAdminKey()
-
-      mockReq.headers = { 'x-admin-key': validKey }
-      const middleware = adminAuthMiddleware()
-      middleware(mockReq as Request, mockRes as Response, mockNext)
-      expect(mockNext).toHaveBeenCalledWith()
-    })
-
     it('should handle invalid key of same length correctly', () => {
       const invalidKey = getInvalidAdminKey()
 
@@ -130,19 +121,6 @@ describe('adminAuthMiddleware', () => {
       const middleware = adminAuthMiddleware()
       middleware(mockReq as Request, mockRes as Response, mockNext)
       expect(mockNext).toHaveBeenCalledWith(expect.any(UnauthorizedError))
-    })
-  })
-
-  describe('header case sensitivity', () => {
-    it('should accept lowercase header name', () => {
-      mockReq.headers = {
-        'x-admin-key': getTestAdminKey(),
-      }
-
-      const middleware = adminAuthMiddleware()
-      middleware(mockReq as Request, mockRes as Response, mockNext)
-
-      expect(mockNext).toHaveBeenCalledWith()
     })
   })
 })
