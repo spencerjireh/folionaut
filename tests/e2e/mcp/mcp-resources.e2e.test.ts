@@ -73,13 +73,20 @@ describe('MCP Resources (E2E)', () => {
     }
   })
 
-  it('lists available resources including type-specific ones', async () => {
+  it('lists resource templates for dynamic type discovery', async () => {
+    const result = await ctx.client.listResourceTemplates()
+
+    expect(result.resourceTemplates).toBeDefined()
+    const uriTemplates = result.resourceTemplates.map((r) => r.uriTemplate)
+    expect(uriTemplates).toContain('folionaut://content/{type}')
+    expect(uriTemplates).toContain('folionaut://content/{type}/{slug}')
+  })
+
+  it('lists available resources including static content resource', async () => {
     const result = await ctx.client.listResources()
 
     expect(result.resources).toBeDefined()
     const uris = result.resources.map((r) => r.uri)
     expect(uris).toContain('folionaut://content')
-    expect(uris).toContain('folionaut://content/project')
-    expect(uris).toContain('folionaut://content/skill')
   })
 })

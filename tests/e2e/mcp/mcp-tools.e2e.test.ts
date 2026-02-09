@@ -25,14 +25,15 @@ describe('MCP Tools (E2E)', () => {
     await ctx.cleanup()
   })
 
-  it('listTools returns all 6 tools with name, description, and inputSchema', async () => {
+  it('listTools returns all 7 tools with name, description, and inputSchema', async () => {
     const result = await ctx.client.listTools()
 
-    expect(result.tools.length).toBe(6)
+    expect(result.tools.length).toBe(7)
     const names = result.tools.map((t) => t.name)
     expect(names).toContain('list_content')
     expect(names).toContain('get_content')
     expect(names).toContain('search_content')
+    expect(names).toContain('list_types')
     expect(names).toContain('create_content')
     expect(names).toContain('update_content')
     expect(names).toContain('delete_content')
@@ -136,6 +137,53 @@ describe('MCP Tools (E2E)', () => {
     const parsed = JSON.parse((updateResult.content as Array<{ text: string }>)[0].text)
     expect(parsed.item).toBeDefined()
     expect(parsed.item.version).toBe(2)
+  })
+
+  it('list_types returns types with counts', async () => {
+    const result = await ctx.client.callTool({
+      name: 'list_types',
+      arguments: {},
+    })
+
+    expect(result.isError).toBeFalsy()
+    const parsed = JSON.parse((result.content as Array<{ text: string }>)[0].text)
+    expect(parsed.types).toBeDefined()
+    expect(Array.isArray(parsed.types)).toBe(true)
+
+    const projectType = parsed.types.find((t: { type: string }) => t.type === 'project')
+    expect(projectType).toBeDefined()
+    expect(projectType.count).toBeGreaterThan(0)
+  })
+
+  it('create and list custom type via MCP', async () => {
+    await ctx.client.callTool({
+      name: 'create_content',
+      arguments: {
+        type: 'blog-post',
+        slug: 'mcp-custom-type',
+        data: { title: 'Custom Type Post', body: 'Content here' },
+        status: 'published',
+      },
+    })
+
+    const typesResult = await ctx.client.callTool({
+      name: 'list_types',
+      arguments: {},
+    })
+
+    const types = JSON.parse((typesResult.content as Array<{ text: string }>)[0].text)
+    const blogType = types.types.find((t: { type: string }) => t.type === 'blog-post')
+    expect(blogType).toBeDefined()
+    expect(blogType.count).toBeGreaterThanOrEqual(1)
+
+    // Verify list_content works with custom type
+    const listResult = await ctx.client.callTool({
+      name: 'list_content',
+      arguments: { type: 'blog-post' },
+    })
+
+    const listParsed = JSON.parse((listResult.content as Array<{ text: string }>)[0].text)
+    expect(listParsed.items.length).toBeGreaterThanOrEqual(1)
   })
 
   it('delete_content removes item from list', async () => {

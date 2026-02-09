@@ -70,8 +70,8 @@ describe('Content Routes Integration', () => {
       expect(mockContentRepository.findPublished).toHaveBeenCalledWith('project')
     })
 
-    it('should return 400 for invalid type', async () => {
-      const response = await request(app).get('/api/v1/content?type=invalid')
+    it('should return 400 for invalid type format', async () => {
+      const response = await request(app).get('/api/v1/content?type=INVALID!')
 
       expect(response.status).toBe(400)
       expect(response.body.error.code).toBe('VALIDATION_ERROR')
@@ -122,33 +122,22 @@ describe('Content Routes Integration', () => {
   describe('GET /api/v1/content/bundle', () => {
     it('should return grouped content bundle', async () => {
       const mockBundle = {
-        projects: [createProject()],
-        experiences: [],
-        education: [],
-        skills: [],
-        about: createAbout(),
-        contact: createContact(),
+        project: [createProject()],
+        about: [createAbout()],
+        contact: [createContact()],
       }
       mockContentRepository.getBundle.mockResolvedValue(mockBundle)
 
       const response = await request(app).get('/api/v1/content/bundle')
 
       expect(response.status).toBe(200)
-      expect(response.body.data).toHaveProperty('projects')
-      expect(response.body.data).toHaveProperty('experiences')
+      expect(response.body.data).toHaveProperty('project')
       expect(response.body.data).toHaveProperty('about')
       expect(response.body.data).toHaveProperty('contact')
     })
 
     it('should include ETag header', async () => {
-      mockContentRepository.getBundle.mockResolvedValue({
-        projects: [],
-        experiences: [],
-        education: [],
-        skills: [],
-        about: null,
-        contact: null,
-      })
+      mockContentRepository.getBundle.mockResolvedValue({})
 
       const response = await request(app).get('/api/v1/content/bundle')
 
@@ -156,14 +145,7 @@ describe('Content Routes Integration', () => {
     })
 
     it('should return 304 when ETag matches', async () => {
-      const mockBundle = {
-        projects: [],
-        experiences: [],
-        education: [],
-        skills: [],
-        about: null,
-        contact: null,
-      }
+      const mockBundle = {}
       mockContentRepository.getBundle.mockResolvedValue(mockBundle)
 
       const firstResponse = await request(app).get('/api/v1/content/bundle')
@@ -177,14 +159,7 @@ describe('Content Routes Integration', () => {
     })
 
     it('should set longer Cache-Control for bundle', async () => {
-      mockContentRepository.getBundle.mockResolvedValue({
-        projects: [],
-        experiences: [],
-        education: [],
-        skills: [],
-        about: null,
-        contact: null,
-      })
+      mockContentRepository.getBundle.mockResolvedValue({})
 
       const response = await request(app).get('/api/v1/content/bundle')
 
@@ -231,8 +206,8 @@ describe('Content Routes Integration', () => {
       expect(response.status).toBe(404)
     })
 
-    it('should return 400 for invalid type', async () => {
-      const response = await request(app).get('/api/v1/content/invalid/my-slug')
+    it('should return 400 for invalid type format', async () => {
+      const response = await request(app).get('/api/v1/content/INVALID!/my-slug')
 
       expect(response.status).toBe(400)
       expect(response.body.error.code).toBe('VALIDATION_ERROR')
@@ -262,11 +237,11 @@ describe('Content Routes Integration', () => {
     })
 
     it('should accept all valid content types', async () => {
-      const types = ['project', 'experience', 'education', 'skill', 'about', 'contact']
+      const types = ['project', 'experience', 'education', 'skill', 'about', 'contact', 'blog-post']
 
       for (const type of types) {
         mockContentRepository.findBySlug.mockResolvedValue(
-          createContent({ type: type as import('@/db/schema').ContentType, status: 'published' })
+          createContent({ type, status: 'published' })
         )
 
         const response = await request(app).get(`/api/v1/content/${type}/test-slug`)

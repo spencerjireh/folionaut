@@ -1,4 +1,4 @@
-import type { ContentType, ContentStatus } from '@/db/schema'
+import type { ContentStatus } from '@/db/schema'
 import type { ContentWithData, ChatSession, ChatMessage, ContentHistory } from '@/db/models'
 
 let idCounter = 0
@@ -22,7 +22,7 @@ export function createContent(overrides: Partial<ContentWithData> = {}): Content
   const now = new Date().toISOString()
   return {
     id: `content_${nextId()}`,
-    type: 'project' as ContentType,
+    type: 'project',
     slug: `test-project-${idCounter}`,
     data: {
       title: `Test Project ${idCounter}`,
@@ -290,11 +290,10 @@ export function createSkillsData(overrides: Record<string, unknown> = {}): Recor
  */
 export function createContentBundle() {
   return {
-    projects: [createProject()],
-    experiences: [createExperience()],
-    education: [],
-    skills: [createSkill()],
-    about: createAbout(),
-    contact: createContact(),
+    project: [createProject()],
+    experience: [createExperience()],
+    skill: [createSkill()],
+    about: [createAbout()],
+    contact: [createContact()],
   }
 }

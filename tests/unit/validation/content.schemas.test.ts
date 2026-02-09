@@ -2,10 +2,6 @@ import {
   SlugSchema,
   ContentTypeSchema,
   ContentStatusSchema,
-  ProjectDataSchema,
-  PageDataSchema,
-  SkillsListDataSchema,
-  ExperienceListDataSchema,
   ContentListQuerySchema,
   AdminContentListQuerySchema,
   CreateContentRequestSchema,
@@ -15,11 +11,8 @@ import {
   HistoryQuerySchema,
   DeleteQuerySchema,
   RestoreVersionRequestSchema,
-  validateContentData,
 } from '@/validation/content.schemas'
 import { parseZodErrors } from '@/validation/parse-errors'
-import { ValidationError } from '@/errors/app.error'
-import { ZodError } from 'zod'
 
 describe('Content Validation Schemas', () => {
   describe('SlugSchema', () => {
@@ -48,7 +41,7 @@ describe('Content Validation Schemas', () => {
   })
 
   describe('ContentTypeSchema', () => {
-    it('should accept valid content types', () => {
+    it('should accept standard content types', () => {
       expect(ContentTypeSchema.parse('project')).toBe('project')
       expect(ContentTypeSchema.parse('experience')).toBe('experience')
       expect(ContentTypeSchema.parse('education')).toBe('education')
@@ -57,8 +50,29 @@ describe('Content Validation Schemas', () => {
       expect(ContentTypeSchema.parse('contact')).toBe('contact')
     })
 
-    it('should reject invalid content types', () => {
-      expect(() => ContentTypeSchema.parse('invalid')).toThrow()
+    it('should accept custom content types', () => {
+      expect(ContentTypeSchema.parse('blog-post')).toBe('blog-post')
+      expect(ContentTypeSchema.parse('certification')).toBe('certification')
+      expect(ContentTypeSchema.parse('testimonial')).toBe('testimonial')
+    })
+
+    it('should reject uppercase characters', () => {
+      expect(() => ContentTypeSchema.parse('INVALID')).toThrow()
+      expect(() => ContentTypeSchema.parse('Blog')).toThrow()
+    })
+
+    it('should reject special characters', () => {
+      expect(() => ContentTypeSchema.parse('invalid_type')).toThrow()
+      expect(() => ContentTypeSchema.parse('invalid type')).toThrow()
+      expect(() => ContentTypeSchema.parse('invalid!')).toThrow()
+    })
+
+    it('should reject empty string', () => {
+      expect(() => ContentTypeSchema.parse('')).toThrow()
+    })
+
+    it('should reject types over 100 characters', () => {
+      expect(() => ContentTypeSchema.parse('a'.repeat(101))).toThrow()
     })
   })
 
@@ -74,142 +88,6 @@ describe('Content Validation Schemas', () => {
     })
   })
 
-  describe('ProjectDataSchema', () => {
-    it('should validate valid project data', () => {
-      const data = {
-        title: 'My Project',
-        description: 'A project description',
-      }
-      expect(() => ProjectDataSchema.parse(data)).not.toThrow()
-    })
-
-    it('should validate project with all fields', () => {
-      const data = {
-        title: 'My Project',
-        description: 'A project description',
-        content: 'Full content here',
-        tags: ['typescript', 'node'],
-        links: {
-          github: 'https://github.com/user/repo',
-          live: 'https://example.com',
-        },
-        coverImage: 'https://example.com/image.png',
-        featured: true,
-      }
-      expect(() => ProjectDataSchema.parse(data)).not.toThrow()
-    })
-
-    it('should reject project without title', () => {
-      expect(() => ProjectDataSchema.parse({ description: 'desc' })).toThrow()
-    })
-
-    it('should reject project without description', () => {
-      expect(() => ProjectDataSchema.parse({ title: 'title' })).toThrow()
-    })
-
-    it('should reject invalid URLs in links', () => {
-      expect(() =>
-        ProjectDataSchema.parse({
-          title: 'title',
-          description: 'desc',
-          links: { github: 'not-a-url' },
-        })
-      ).toThrow()
-    })
-  })
-
-  describe('PageDataSchema', () => {
-    it('should validate valid page data', () => {
-      const data = {
-        title: 'About Me',
-        content: 'Content here',
-      }
-      expect(() => PageDataSchema.parse(data)).not.toThrow()
-    })
-
-    it('should accept optional image', () => {
-      const data = {
-        title: 'About',
-        content: 'Content',
-        image: 'https://example.com/image.png',
-      }
-      expect(() => PageDataSchema.parse(data)).not.toThrow()
-    })
-  })
-
-  describe('SkillsListDataSchema', () => {
-    it('should validate valid skills data', () => {
-      const data = {
-        items: [
-          { name: 'TypeScript', category: 'language', proficiency: 5 },
-          { name: 'React', category: 'framework' },
-        ],
-      }
-      expect(() => SkillsListDataSchema.parse(data)).not.toThrow()
-    })
-
-    it('should reject invalid category', () => {
-      expect(() =>
-        SkillsListDataSchema.parse({
-          items: [{ name: 'Test', category: 'invalid' }],
-        })
-      ).toThrow()
-    })
-
-    it('should reject proficiency out of range', () => {
-      expect(() =>
-        SkillsListDataSchema.parse({
-          items: [{ name: 'Test', category: 'language', proficiency: 6 }],
-        })
-      ).toThrow()
-    })
-  })
-
-  describe('ExperienceListDataSchema', () => {
-    it('should validate valid experience data', () => {
-      const data = {
-        items: [
-          {
-            company: 'Test Corp',
-            role: 'Developer',
-            startDate: '2020-01',
-            endDate: '2023-12',
-          },
-        ],
-      }
-      expect(() => ExperienceListDataSchema.parse(data)).not.toThrow()
-    })
-
-    it('should accept null endDate (current job)', () => {
-      const data = {
-        items: [
-          {
-            company: 'Test Corp',
-            role: 'Developer',
-            startDate: '2020-01',
-            endDate: null,
-          },
-        ],
-      }
-      expect(() => ExperienceListDataSchema.parse(data)).not.toThrow()
-    })
-
-    it('should reject invalid date format', () => {
-      expect(() =>
-        ExperienceListDataSchema.parse({
-          items: [
-            {
-              company: 'Test',
-              role: 'Dev',
-              startDate: '2020/01/01',
-              endDate: null,
-            },
-          ],
-        })
-      ).toThrow()
-    })
-  })
-
   describe('ContentListQuerySchema', () => {
     it('should accept empty query', () => {
       const result = ContentListQuerySchema.parse({})
@@ -219,6 +97,11 @@ describe('Content Validation Schemas', () => {
     it('should accept valid type filter', () => {
       const result = ContentListQuerySchema.parse({ type: 'project' })
       expect(result.type).toBe('project')
+    })
+
+    it('should accept custom type filter', () => {
+      const result = ContentListQuerySchema.parse({ type: 'blog-post' })
+      expect(result.type).toBe('blog-post')
     })
   })
 
@@ -271,6 +154,27 @@ describe('Content Validation Schemas', () => {
 
       expect(result.slug).toBe('my-project')
     })
+
+    it('should accept custom content type', () => {
+      const data = {
+        type: 'blog-post',
+        slug: 'my-first-post',
+        data: { title: 'Hello World', body: 'Content here' },
+      }
+      const result = CreateContentRequestSchema.parse(data)
+
+      expect(result.type).toBe('blog-post')
+    })
+
+    it('should reject empty data object', () => {
+      expect(() =>
+        CreateContentRequestSchema.parse({
+          type: 'project',
+          slug: 'test',
+          data: {},
+        })
+      ).toThrow()
+    })
   })
 
   describe('UpdateContentRequestSchema', () => {
@@ -309,6 +213,15 @@ describe('Content Validation Schemas', () => {
       expect(result.type).toBe('project')
       expect(result.slug).toBe('my-project')
     })
+
+    it('should accept custom type', () => {
+      const result = ContentTypeSlugParamsSchema.parse({
+        type: 'blog-post',
+        slug: 'my-post',
+      })
+
+      expect(result.type).toBe('blog-post')
+    })
   })
 
   describe('HistoryQuerySchema', () => {
@@ -343,55 +256,13 @@ describe('Content Validation Schemas', () => {
     })
   })
 
-  describe('validateContentData', () => {
-    it('should validate project data', () => {
-      const data = { title: 'Test', description: 'Desc' }
-      const result = validateContentData('project', data)
-
-      expect(result).toHaveProperty('title', 'Test')
-    })
-
-    it('should throw ValidationError for invalid data', () => {
-      const data = { title: '' } // Missing description
-      expect(() => validateContentData('project', data)).toThrow(ValidationError)
-
-      try {
-        validateContentData('project', data)
-      } catch (error) {
-        expect(error).toBeInstanceOf(ValidationError)
-        expect((error as ValidationError).fields).toBeDefined()
-      }
-    })
-
-    it('should throw for unknown content type', () => {
-      expect(() =>
-        validateContentData('unknown' as 'project', { title: 'Test' })
-      ).toThrow('No schema defined for content type: unknown')
-    })
-  })
-
   describe('parseZodErrors', () => {
     it('should convert Zod errors to field map', () => {
-      const result = ProjectDataSchema.safeParse({ title: '' })
+      const result = SlugSchema.safeParse('')
       expect(result.success).toBe(false)
       if (!result.success) {
         const fields = parseZodErrors(result.error)
-        expect(fields).toHaveProperty('title')
-        expect(fields).toHaveProperty('description')
-      }
-    })
-
-    it('should handle nested path errors', () => {
-      const result = ProjectDataSchema.safeParse({
-        title: 'Test',
-        description: 'Desc',
-        links: { github: 'not-a-url' },
-      })
-      expect(result.success).toBe(false)
-      if (!result.success) {
-        const fields = parseZodErrors(result.error)
-        // Path is joined with dots, so check for the key directly
-        expect('links.github' in fields).toBe(true)
+        expect(fields).toHaveProperty('_root')
       }
     })
 

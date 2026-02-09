@@ -1,5 +1,5 @@
 
-const { mockContentRepository, mockValidateContentData } = vi.hoisted(() => ({
+const { mockContentRepository } = vi.hoisted(() => ({
   mockContentRepository: {
     findAll: vi.fn(),
     findBySlug: vi.fn(),
@@ -10,15 +10,10 @@ const { mockContentRepository, mockValidateContentData } = vi.hoisted(() => ({
     updateWithHistory: vi.fn(),
     delete: vi.fn(),
   },
-  mockValidateContentData: vi.fn(),
 }))
 
 vi.mock('@/repositories/content.repository', () => ({
   contentRepository: mockContentRepository,
-}))
-
-vi.mock('@/validation/content.schemas', () => ({
-  validateContentData: mockValidateContentData,
 }))
 
 describe('createContent', () => {
@@ -35,14 +30,13 @@ describe('createContent', () => {
   })
 
   it('should create content with valid input', async () => {
-    const validatedData = { title: 'Test Project', description: 'A test', tags: [] }
-    mockValidateContentData.mockReturnValue(validatedData)
+    const data = { title: 'Test Project', description: 'A test', tags: [] }
     mockContentRepository.slugExists.mockResolvedValue(false)
     mockContentRepository.create.mockResolvedValue({
       id: 'content_1',
       slug: 'test-project',
       type: 'project',
-      data: validatedData,
+      data,
       status: 'draft',
       version: 1,
       sortOrder: 0,
@@ -53,7 +47,7 @@ describe('createContent', () => {
     const result = await createContent({
       type: 'project',
       slug: 'test-project',
-      data: { title: 'Test Project', description: 'A test', tags: [] },
+      data,
     })
 
     expect(result.success).toBe(true)
@@ -63,14 +57,13 @@ describe('createContent', () => {
   })
 
   it('should auto-generate slug from title', async () => {
-    const validatedData = { title: 'My New Project', description: 'Desc', tags: [] }
-    mockValidateContentData.mockReturnValue(validatedData)
+    const data = { title: 'My New Project', description: 'Desc', tags: [] }
     mockContentRepository.slugExists.mockResolvedValue(false)
     mockContentRepository.create.mockResolvedValue({
       id: 'content_2',
       slug: 'my-new-project',
       type: 'project',
-      data: validatedData,
+      data,
       status: 'draft',
       version: 1,
       sortOrder: 0,
@@ -80,7 +73,7 @@ describe('createContent', () => {
 
     const result = await createContent({
       type: 'project',
-      data: { title: 'My New Project', description: 'Desc', tags: [] },
+      data,
     })
 
     expect(result.success).toBe(true)
@@ -88,8 +81,6 @@ describe('createContent', () => {
   })
 
   it('should return error when slug is missing and cannot be generated', async () => {
-    mockValidateContentData.mockReturnValue({ items: [] })
-
     const result = await createContent({
       type: 'skill',
       data: { items: [] },
@@ -100,7 +91,6 @@ describe('createContent', () => {
   })
 
   it('should return error on duplicate slug', async () => {
-    mockValidateContentData.mockReturnValue({ title: 'Test', description: 'D', tags: [] })
     mockContentRepository.slugExists.mockResolvedValue(true)
 
     const result = await createContent({
@@ -113,19 +103,28 @@ describe('createContent', () => {
     expect(result.error).toContain('Slug already exists')
   })
 
-  it('should return error on validation failure', async () => {
-    const { ValidationError } = await import('@/errors/app.error')
-    mockValidateContentData.mockImplementation(() => {
-      throw new ValidationError('Invalid', { title: 'Title is required' })
+  it('should create content with custom type', async () => {
+    const data = { title: 'My First Post', body: 'Content here' }
+    mockContentRepository.slugExists.mockResolvedValue(false)
+    mockContentRepository.create.mockResolvedValue({
+      id: 'content_3',
+      slug: 'my-first-post',
+      type: 'blog-post',
+      data,
+      status: 'draft',
+      version: 1,
+      sortOrder: 0,
+      createdAt: '2024-01-01T00:00:00Z',
+      updatedAt: '2024-01-01T00:00:00Z',
     })
 
     const result = await createContent({
-      type: 'project',
-      slug: 'bad-data',
-      data: {},
+      type: 'blog-post',
+      slug: 'my-first-post',
+      data,
     })
 
-    expect(result.success).toBe(false)
-    expect(result.error).toContain('Validation failed')
+    expect(result.success).toBe(true)
+    expect(result.data?.item.type).toBe('blog-post')
   })
 })

@@ -78,9 +78,9 @@ describe('Public content API (E2E)', () => {
 
     const res = await api().get('/api/v1/content/bundle')
     expect(res.status).toBe(200)
-    expect(res.body.data).toHaveProperty('projects')
-    expect(res.body.data).toHaveProperty('skills')
-    expect(Array.isArray(res.body.data.projects)).toBe(true)
+    expect(res.body.data).toHaveProperty('project')
+    expect(res.body.data).toHaveProperty('skill')
+    expect(Array.isArray(res.body.data.project)).toBe(true)
   })
 
   it('empty DB returns empty arrays', async () => {

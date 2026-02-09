@@ -123,12 +123,7 @@ describe('ContentService', () => {
   describe('getBundle', () => {
     it('should return bundle with ETag', async () => {
       const mockBundle: ContentBundle = {
-        projects: [createContentItem()],
-        experiences: [],
-        education: [],
-        skills: [],
-        about: null,
-        contact: null,
+        project: [createContentItem()],
       }
       mockContentRepository.getBundle.mockResolvedValue(mockBundle)
 
@@ -152,8 +147,8 @@ describe('ContentService', () => {
       expect(result.type).toBe('project')
     })
 
-    it('should throw ValidationError for invalid type', () => {
-      expect(() => contentService.validateListQuery({ type: 'invalid' })).toThrow('Invalid query parameters')
+    it('should throw ValidationError for invalid type format', () => {
+      expect(() => contentService.validateListQuery({ type: 'INVALID!' })).toThrow('Invalid query parameters')
     })
   })
 
@@ -164,8 +159,8 @@ describe('ContentService', () => {
       expect(result).toEqual({ type: 'project', slug: 'my-project' })
     })
 
-    it('should throw ValidationError for invalid type', () => {
-      expect(() => contentService.validateTypeSlugParams({ type: 'invalid', slug: 'test' })).toThrow('Invalid parameters')
+    it('should throw ValidationError for invalid type format', () => {
+      expect(() => contentService.validateTypeSlugParams({ type: 'INVALID!', slug: 'test' })).toThrow('Invalid parameters')
     })
 
     it('should throw ValidationError for missing slug', () => {
@@ -272,7 +267,7 @@ describe('ContentService', () => {
           },
           'admin'
         )
-      ).rejects.toThrow('Invalid content data')
+      ).rejects.toThrow('Slug is required')
     })
 
     it('should throw ConflictError when slug exists', async () => {

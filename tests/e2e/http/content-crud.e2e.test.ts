@@ -176,17 +176,57 @@ describe('Content CRUD (E2E)', () => {
     expect(res.body.error.code).toBe('CONFLICT')
   })
 
-  it('invalid content type returns 400', async () => {
+  it('rejects empty data object', async () => {
+    const res = await api()
+      .post('/api/v1/admin/content')
+      .set(adminHeaders())
+      .send({ type: 'project', slug: 'empty-data', data: {} })
+
+    expect(res.status).toBe(400)
+    expect(res.body.error.code).toBe('VALIDATION_ERROR')
+  })
+
+  it('invalid content type format returns 400', async () => {
     const res = await api()
       .post('/api/v1/admin/content')
       .set(adminHeaders())
       .send({
-        type: 'invalid_type',
+        type: 'INVALID!',
         data: { title: 'Bad Type', description: 'Nope', tags: [] },
       })
 
     expect(res.status).toBe(400)
     expect(res.body.error.code).toBe('VALIDATION_ERROR')
+  })
+
+  it('creates content with custom type', async () => {
+    const res = await api()
+      .post('/api/v1/admin/content')
+      .set(adminHeaders())
+      .send({
+        type: 'blog-post',
+        slug: 'my-first-blog',
+        data: { title: 'My First Blog', body: 'Hello world!' },
+        status: 'published',
+      })
+
+    expect(res.status).toBe(201)
+    expect(res.body.data.type).toBe('blog-post')
+    expect(res.body.data.slug).toBe('my-first-blog')
+
+    // Read it back
+    const readRes = await api().get('/api/v1/content/blog-post/my-first-blog')
+    expect(readRes.status).toBe(200)
+    expect(readRes.body.data.data.title).toBe('My First Blog')
+
+    // Update it
+    const updateRes = await api()
+      .put(`/api/v1/admin/content/${res.body.data.id}`)
+      .set(adminHeaders())
+      .send({ data: { title: 'Updated Blog', body: 'Updated content' } })
+
+    expect(updateRes.status).toBe(200)
+    expect(updateRes.body.data.version).toBe(2)
   })
 
   it('hard delete permanently removes item and cascades history', async () => {

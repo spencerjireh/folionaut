@@ -473,12 +473,12 @@ describe('ContentRepository Integration', () => {
 
       const bundle = await repository.getBundle()
 
-      expect(bundle.projects).toHaveLength(2)
-      expect(bundle.experiences).toHaveLength(1)
-      expect(bundle.about).not.toBeNull()
-      expect(bundle.contact).not.toBeNull()
-      expect(bundle.education).toHaveLength(0)
-      expect(bundle.skills).toHaveLength(0)
+      expect(bundle['project']).toHaveLength(2)
+      expect(bundle['experience']).toHaveLength(1)
+      expect(bundle['about']).toHaveLength(1)
+      expect(bundle['contact']).toHaveLength(1)
+      expect(bundle['education']).toBeUndefined()
+      expect(bundle['skill']).toBeUndefined()
     })
 
     it('should return empty bundle when no published content', async () => {
@@ -486,9 +486,42 @@ describe('ContentRepository Integration', () => {
 
       const bundle = await repository.getBundle()
 
-      expect(bundle.projects).toHaveLength(0)
-      expect(bundle.about).toBeNull()
-      expect(bundle.contact).toBeNull()
+      expect(Object.keys(bundle)).toHaveLength(0)
+    })
+  })
+
+  describe('getTypes', () => {
+    it('should count only published content', async () => {
+      await repository.create({ type: 'project', slug: 'p1', data: {}, status: 'published' })
+      await repository.create({ type: 'project', slug: 'p2', data: {}, status: 'published' })
+      await repository.create({ type: 'project', slug: 'p3', data: {}, status: 'draft' })
+      await repository.create({ type: 'experience', slug: 'e1', data: {}, status: 'published' })
+      await repository.create({ type: 'experience', slug: 'e2', data: {}, status: 'archived' })
+      await repository.create({ type: 'skill', slug: 's1', data: {}, status: 'draft' })
+
+      const types = await repository.getTypes()
+
+      expect(types).toEqual([
+        { type: 'experience', count: 1 },
+        { type: 'project', count: 2 },
+      ])
+    })
+
+    it('should return empty array when no published content', async () => {
+      await repository.create({ type: 'project', slug: 'p1', data: {}, status: 'draft' })
+
+      const types = await repository.getTypes()
+
+      expect(types).toEqual([])
+    })
+
+    it('should exclude soft-deleted content', async () => {
+      const created = await repository.create({ type: 'project', slug: 'p1', data: {}, status: 'published' })
+      await repository.delete(created.id)
+
+      const types = await repository.getTypes()
+
+      expect(types).toEqual([])
     })
   })
 })

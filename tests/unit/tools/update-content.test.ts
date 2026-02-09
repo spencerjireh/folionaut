@@ -1,5 +1,5 @@
 
-const { mockContentRepository, mockValidateContentData } = vi.hoisted(() => ({
+const { mockContentRepository } = vi.hoisted(() => ({
   mockContentRepository: {
     findAll: vi.fn(),
     findBySlug: vi.fn(),
@@ -10,15 +10,10 @@ const { mockContentRepository, mockValidateContentData } = vi.hoisted(() => ({
     updateWithHistory: vi.fn(),
     delete: vi.fn(),
   },
-  mockValidateContentData: vi.fn(),
 }))
 
 vi.mock('@/repositories/content.repository', () => ({
   contentRepository: mockContentRepository,
-}))
-
-vi.mock('@/validation/content.schemas', () => ({
-  validateContentData: mockValidateContentData,
 }))
 
 describe('updateContent', () => {
@@ -49,7 +44,6 @@ describe('updateContent', () => {
   it('should update content with valid input', async () => {
     const updatedData = { title: 'New Title', description: 'New', tags: [] }
     mockContentRepository.findById.mockResolvedValue(existingItem)
-    mockValidateContentData.mockReturnValue(updatedData)
     mockContentRepository.updateWithHistory.mockResolvedValue({
       ...existingItem,
       data: updatedData,
@@ -76,22 +70,6 @@ describe('updateContent', () => {
 
     expect(result.success).toBe(false)
     expect(result.error).toContain('Content not found')
-  })
-
-  it('should return error on validation failure', async () => {
-    const { ValidationError } = await import('@/errors/app.error')
-    mockContentRepository.findById.mockResolvedValue(existingItem)
-    mockValidateContentData.mockImplementation(() => {
-      throw new ValidationError('Invalid', { title: 'Title is required' })
-    })
-
-    const result = await updateContent({
-      id: 'content_1',
-      data: {},
-    })
-
-    expect(result.success).toBe(false)
-    expect(result.error).toContain('Validation failed')
   })
 
   it('should return error on slug conflict', async () => {

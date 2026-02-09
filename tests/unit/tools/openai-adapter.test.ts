@@ -1,14 +1,16 @@
 
-const { mockListContent, mockGetContent, mockSearchContent } = vi.hoisted(() => ({
+const { mockListContent, mockGetContent, mockSearchContent, mockListTypes } = vi.hoisted(() => ({
   mockListContent: vi.fn(),
   mockGetContent: vi.fn(),
   mockSearchContent: vi.fn(),
+  mockListTypes: vi.fn(),
 }))
 
 vi.mock('@/tools/core', () => ({
   listContent: mockListContent,
   getContent: mockGetContent,
   searchContent: mockSearchContent,
+  listTypes: mockListTypes,
 }))
 
 // Mock content repository (needed by core modules)
@@ -36,8 +38,15 @@ describe('OpenAI Adapter', () => {
   })
 
   describe('chatToolDefinitions', () => {
-    it('should have three tool definitions', () => {
-      expect(chatToolDefinitions).toHaveLength(3)
+    it('should have four tool definitions', () => {
+      expect(chatToolDefinitions).toHaveLength(4)
+    })
+
+    it('should include list_types tool', () => {
+      const listTypesTool = chatToolDefinitions.find((t) => t.name === 'list_types')
+      expect(listTypesTool).toBeDefined()
+      expect(listTypesTool?.description).toContain('content types')
+      expect(listTypesTool?.parameters).toBeDefined()
     })
 
     it('should include list_content tool', () => {
