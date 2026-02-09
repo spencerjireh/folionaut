@@ -4,8 +4,9 @@ import {
   ListContentInputSchema,
   GetContentInputSchema,
   SearchContentInputSchema,
+  ListTypesInputSchema,
 } from '@/validation/tool.schemas'
-import { listContent, getContent, searchContent } from './core'
+import { listContent, getContent, searchContent, listTypes } from './core'
 import type { ToolResult } from './types'
 import type { FunctionDefinition, ToolCall } from '@/llm/types'
 
@@ -17,7 +18,7 @@ export const chatToolDefinitions: FunctionDefinition[] = [
   {
     name: 'list_content',
     description:
-      'List portfolio content items by type (project, experience, education, skill, about, contact). Use this to get all items of a specific type.',
+      'List portfolio content items by type. Use list_types first to discover available types. Use this to get all items of a specific type.',
     parameters: zodToJsonSchema(ListContentInputSchema, { $refStrategy: 'none' }),
   },
   {
@@ -31,6 +32,12 @@ export const chatToolDefinitions: FunctionDefinition[] = [
     description:
       'Search portfolio content by query string. Searches across title, description, name, company, role, tags, and other fields. Use this when looking for content matching specific keywords.',
     parameters: zodToJsonSchema(SearchContentInputSchema, { $refStrategy: 'none' }),
+  },
+  {
+    name: 'list_types',
+    description:
+      'List all available content types and their item counts. Use this to discover what types of content exist in the portfolio.',
+    parameters: zodToJsonSchema(ListTypesInputSchema, { $refStrategy: 'none' }),
   },
 ]
 
@@ -61,6 +68,9 @@ export async function executeToolCall(toolCall: ToolCall): Promise<string> {
         break
       case 'search_content':
         result = await searchContent(args as Parameters<typeof searchContent>[0])
+        break
+      case 'list_types':
+        result = await listTypes()
         break
       default:
         result = { success: false, error: `Unknown tool: ${name}` }

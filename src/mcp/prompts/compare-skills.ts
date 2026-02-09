@@ -1,7 +1,6 @@
 import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js'
 import { contentRepository } from '@/repositories/content.repository'
 import { CompareSkillsArgsSchema, CompareSkillsPromptArgsShape } from '../schemas'
-import type { SkillsListData } from '@/validation/content.schemas'
 
 export function registerCompareSkills(server: McpServer) {
   server.prompt(
@@ -32,9 +31,14 @@ export function registerCompareSkills(server: McpServer) {
       let skillDetails: Array<{ name: string; category: string; proficiency?: number }> = []
 
       if (skillsContent.length > 0) {
-        const skillsData = skillsContent[0].data as SkillsListData
-        portfolioSkills = skillsData.items.map((s) => s.name.toLowerCase())
-        skillDetails = skillsData.items.map((s) => ({
+        const skillsData = skillsContent[0].data as Record<string, unknown>
+        const items = (skillsData.items ?? []) as Array<{
+          name: string
+          category: string
+          proficiency?: number
+        }>
+        portfolioSkills = items.map((s) => s.name.toLowerCase())
+        skillDetails = items.map((s) => ({
           name: s.name,
           category: s.category,
           proficiency: s.proficiency,

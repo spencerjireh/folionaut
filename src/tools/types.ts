@@ -24,6 +24,10 @@ export interface ListContentResult {
   items: ContentItem[]
 }
 
+export interface ListTypesResult {
+  types: Array<{ type: string; count: number }>
+}
+
 export interface GetContentResult {
   item: ContentItem
 }

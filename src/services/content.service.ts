@@ -12,10 +12,9 @@ import {
   HistoryQuerySchema,
   RestoreVersionRequestSchema,
   DeleteQuerySchema,
-  validateContentData,
 } from '@/validation/content.schemas'
 import { validate } from '@/validation/validate'
-import type { ContentType, ContentWithData, ContentBundle, ContentHistory } from '@/db/models'
+import type { ContentWithData, ContentBundle, ContentHistory } from '@/db/models'
 import { eventEmitter } from '@/events'
 import type { ContentListOptions, ServiceResponse } from './content.types'
 
@@ -37,10 +36,7 @@ class ContentService {
    * Get a single content item by type and slug.
    * Throws NotFoundError if not found or not published.
    */
-  async getByTypeAndSlug(
-    type: ContentType,
-    slug: string
-  ): Promise<ServiceResponse<ContentWithData>> {
+  async getByTypeAndSlug(type: string, slug: string): Promise<ServiceResponse<ContentWithData>> {
     const content = await contentRepository.findBySlug(type, slug)
 
     if (!content) {
@@ -75,7 +71,7 @@ class ContentService {
   /**
    * Validate and parse type/slug route parameters.
    */
-  validateTypeSlugParams(params: unknown): { type: ContentType; slug: string } {
+  validateTypeSlugParams(params: unknown): { type: string; slug: string } {
     return validate(ContentTypeSlugParamsSchema, params, 'Invalid parameters')
   }
 
@@ -136,7 +132,7 @@ class ContentService {
    * Get all content (admin view), including drafts and optionally deleted.
    */
   async getAllContent(options: {
-    type?: ContentType
+    type?: string
     status?: 'draft' | 'published' | 'archived'
     includeDeleted?: boolean
     limit?: number
@@ -163,7 +159,7 @@ class ContentService {
    */
   async createContent(
     dto: {
-      type: ContentType
+      type: string
       slug?: string
       data: Record<string, unknown>
       status?: 'draft' | 'published' | 'archived'
@@ -171,9 +167,6 @@ class ContentService {
     },
     changedBy: string
   ): Promise<{ data: ContentWithData }> {
-    // Validate data against type-specific schema
-    const validatedData = validateContentData(dto.type, dto.data)
-
     // Generate slug if not provided
     let slug = dto.slug
     if (!slug) {
@@ -199,7 +192,7 @@ class ContentService {
       {
         type: dto.type,
         slug,
-        data: validatedData,
+        data: dto.data,
         status: dto.status ?? 'draft',
         sortOrder: dto.sortOrder ?? 0,
       },
@@ -208,7 +201,7 @@ class ContentService {
 
     eventEmitter.emit('content:created', {
       id: data.id,
-      type: data.type as ContentType,
+      type: data.type,
       slug: data.slug,
       version: data.version,
       changedBy,
@@ -236,19 +229,9 @@ class ContentService {
       throw new NotFoundError('Content', id)
     }
 
-    // Validate data if provided
-    let validatedData = dto.data
-    if (dto.data) {
-      validatedData = validateContentData(existing.type as ContentType, dto.data)
-    }
-
     // Check slug uniqueness if changing
     if (dto.slug && dto.slug !== existing.slug) {
-      const slugExists = await contentRepository.slugExists(
-        existing.type as ContentType,
-        dto.slug,
-        id
-      )
+      const slugExists = await contentRepository.slugExists(existing.type, dto.slug, id)
       if (slugExists) {
         throw new ConflictError(
           `Slug '${dto.slug}' already exists for type '${existing.type}'`,
@@ -262,7 +245,7 @@ class ContentService {
       id,
       {
         slug: dto.slug,
-        data: validatedData,
+        data: dto.data,
         status: dto.status,
         sortOrder: dto.sortOrder,
       },
@@ -283,7 +266,7 @@ class ContentService {
 
     eventEmitter.emit('content:updated', {
       id: data.id,
-      type: data.type as ContentType,
+      type: data.type,
       version: data.version,
       previousVersion,
       changedFields,
@@ -311,7 +294,7 @@ class ContentService {
 
       eventEmitter.emit('content:deleted', {
         id,
-        type: existing.type as ContentType,
+        type: existing.type,
         hard: true,
         changedBy,
       })
@@ -326,7 +309,7 @@ class ContentService {
 
     eventEmitter.emit('content:deleted', {
       id,
-      type: existing.type as ContentType,
+      type: existing.type,
       hard: false,
       changedBy,
     })
@@ -373,13 +356,20 @@ class ContentService {
 
     eventEmitter.emit('content:restored', {
       id: data.id,
-      type: data.type as ContentType,
+      type: data.type,
       fromVersion: version,
       toVersion: data.version,
       changedBy,
     })
 
     return { data }
+  }
+
+  /**
+   * Get all distinct content types with counts.
+   */
+  async getTypes(): Promise<Array<{ type: string; count: number }>> {
+    return contentRepository.getTypes()
   }
 }
 

@@ -1,4 +1,4 @@
-import { eq, and, isNull, desc, asc } from 'drizzle-orm'
+import { eq, and, isNull, desc, asc, sql } from 'drizzle-orm'
 import { db } from '@/db/client'
 import { content, contentHistory } from '@/db/schema'
 import { contentId, historyId } from '@/lib/id'
@@ -9,7 +9,6 @@ import type {
   ContentBundle,
   CreateContentDto,
   UpdateContentDto,
-  ContentType,
 } from '@/db/models'
 
 function parseContentData<T = Record<string, unknown>>(row: Content): ContentWithData<T> {
@@ -31,7 +30,7 @@ export class ContentRepository {
     return parseContentData(result[0])
   }
 
-  async findBySlug(type: ContentType, slug: string): Promise<ContentWithData | null> {
+  async findBySlug(type: string, slug: string): Promise<ContentWithData | null> {
     const result = await db
       .select()
       .from(content)
@@ -42,7 +41,7 @@ export class ContentRepository {
     return parseContentData(result[0])
   }
 
-  async slugExists(type: ContentType, slug: string, excludeId?: string): Promise<boolean> {
+  async slugExists(type: string, slug: string, excludeId?: string): Promise<boolean> {
     const conditions = [eq(content.type, type), eq(content.slug, slug)]
 
     // Include soft-deleted content in uniqueness check
@@ -60,7 +59,7 @@ export class ContentRepository {
     return true
   }
 
-  async findByType(type: ContentType): Promise<ContentWithData[]> {
+  async findByType(type: string): Promise<ContentWithData[]> {
     const results = await db
       .select()
       .from(content)
@@ -71,7 +70,7 @@ export class ContentRepository {
   }
 
   async findAll(options?: {
-    type?: ContentType
+    type?: string
     status?: 'draft' | 'published' | 'archived'
     includeDeleted?: boolean
     limit?: number
@@ -110,7 +109,7 @@ export class ContentRepository {
     return parseContentData(result[0])
   }
 
-  async findPublished(type?: ContentType): Promise<ContentWithData[]> {
+  async findPublished(type?: string): Promise<ContentWithData[]> {
     const conditions = [eq(content.status, 'published'), isNull(content.deletedAt)]
     if (type) {
       conditions.push(eq(content.type, type))
@@ -311,39 +310,30 @@ export class ContentRepository {
   async getBundle(): Promise<ContentBundle> {
     const published = await this.findPublished()
 
-    const bundle: ContentBundle = {
-      projects: [],
-      experiences: [],
-      education: [],
-      skills: [],
-      about: null,
-      contact: null,
-    }
+    const bundle: ContentBundle = {}
 
     for (const item of published) {
-      switch (item.type) {
-        case 'project':
-          bundle.projects.push(item)
-          break
-        case 'experience':
-          bundle.experiences.push(item)
-          break
-        case 'education':
-          bundle.education.push(item)
-          break
-        case 'skill':
-          bundle.skills.push(item)
-          break
-        case 'about':
-          bundle.about = item
-          break
-        case 'contact':
-          bundle.contact = item
-          break
+      if (!bundle[item.type]) {
+        bundle[item.type] = []
       }
+      bundle[item.type].push(item)
     }
 
     return bundle
+  }
+
+  async getTypes(): Promise<Array<{ type: string; count: number }>> {
+    const results = await db
+      .select({
+        type: content.type,
+        count: sql<number>`COUNT(*)`,
+      })
+      .from(content)
+      .where(and(isNull(content.deletedAt), eq(content.status, 'published')))
+      .groupBy(content.type)
+      .orderBy(asc(content.type))
+
+    return results.map((r) => ({ type: r.type, count: Number(r.count) }))
   }
 }
 

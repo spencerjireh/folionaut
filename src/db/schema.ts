@@ -1,15 +1,8 @@
 import { sqliteTable, text, integer, index, uniqueIndex } from 'drizzle-orm/sqlite-core'
 
-// Content types for portfolio sections
-export const contentTypeEnum = [
-  'project',
-  'experience',
-  'education',
-  'skill',
-  'about',
-  'contact',
-] as const
-export type ContentType = (typeof contentTypeEnum)[number]
+// Content type validation pattern (lowercase alphanumeric with hyphens)
+export const CONTENT_TYPE_PATTERN = /^[a-z0-9-]+$/
+export type ContentType = string
 
 // Content status
 export const contentStatusEnum = ['draft', 'published', 'archived'] as const

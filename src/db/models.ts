@@ -48,15 +48,8 @@ export interface ContentWithData<T = Record<string, unknown>> extends Omit<Conte
   data: T
 }
 
-// Content bundle for grouped response
-export interface ContentBundle {
-  projects: ContentWithData[]
-  experiences: ContentWithData[]
-  education: ContentWithData[]
-  skills: ContentWithData[]
-  about: ContentWithData | null
-  contact: ContentWithData | null
-}
+// Content bundle for grouped response (dynamic keys based on content types)
+export type ContentBundle = Record<string, ContentWithData[]>
 
 // DTOs for chat operations
 export interface CreateChatSessionDto {

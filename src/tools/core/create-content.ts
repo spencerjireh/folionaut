@@ -1,33 +1,16 @@
 import { contentRepository } from '@/repositories/content.repository'
 import { CreateContentInputSchema, type CreateContentInput } from '@/validation/tool.schemas'
-import { validateContentData } from '@/validation/content.schemas'
-import { ValidationError } from '@/errors/app.error'
 import { slugify } from '@/lib/slugify'
-import type { ContentType } from '@/db/schema'
 import type { ToolResult, CreateContentResult, ContentItem } from '../types'
 
 /**
- * Creates new content with type-specific data validation.
+ * Creates new content with any content type.
  * Core function used by MCP server.
  */
 export async function createContent(
   input: CreateContentInput
 ): Promise<ToolResult<CreateContentResult>> {
   const params = CreateContentInputSchema.parse(input)
-
-  // Validate data against type-specific schema
-  let validationResult: Record<string, unknown>
-  try {
-    validationResult = validateContentData(params.type as ContentType, params.data)
-  } catch (error) {
-    if (error instanceof ValidationError) {
-      return {
-        success: false,
-        error: `Validation failed: ${JSON.stringify(error.fields)}`,
-      }
-    }
-    throw error
-  }
 
   // Generate slug if not provided
   const text = String(params.data.title ?? params.data.name ?? '')
@@ -40,7 +23,7 @@ export async function createContent(
   }
 
   // Check if slug already exists
-  const exists = await contentRepository.slugExists(params.type as ContentType, slug)
+  const exists = await contentRepository.slugExists(params.type, slug)
   if (exists) {
     return {
       success: false,
@@ -49,9 +32,9 @@ export async function createContent(
   }
 
   const created = await contentRepository.create({
-    type: params.type as ContentType,
+    type: params.type,
     slug,
-    data: validationResult,
+    data: params.data,
     status: params.status,
     sortOrder: params.sortOrder,
   })

@@ -1,8 +1,5 @@
 import { contentRepository } from '@/repositories/content.repository'
 import { UpdateContentInputSchema, type UpdateContentInput } from '@/validation/tool.schemas'
-import { validateContentData } from '@/validation/content.schemas'
-import { ValidationError } from '@/errors/app.error'
-import type { ContentType } from '@/db/schema'
 import type { ToolResult, UpdateContentResult, ContentItem } from '../types'
 
 /**
@@ -23,29 +20,9 @@ export async function updateContent(
     }
   }
 
-  // If data is provided, validate against type-specific schema
-  let validatedData: Record<string, unknown> | undefined
-  if (params.data) {
-    try {
-      validatedData = validateContentData(existing.type as ContentType, params.data)
-    } catch (error) {
-      if (error instanceof ValidationError) {
-        return {
-          success: false,
-          error: `Validation failed: ${JSON.stringify(error.fields)}`,
-        }
-      }
-      throw error
-    }
-  }
-
   // If slug is being changed, verify it doesn't conflict
   if (params.slug && params.slug !== existing.slug) {
-    const exists = await contentRepository.slugExists(
-      existing.type as ContentType,
-      params.slug,
-      params.id
-    )
+    const exists = await contentRepository.slugExists(existing.type, params.slug, params.id)
     if (exists) {
       return {
         success: false,
@@ -56,7 +33,7 @@ export async function updateContent(
 
   const updated = await contentRepository.updateWithHistory(params.id, {
     slug: params.slug,
-    data: validatedData,
+    data: params.data,
     status: params.status,
     sortOrder: params.sortOrder,
   })

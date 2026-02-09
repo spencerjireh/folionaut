@@ -1,7 +1,5 @@
-import type { ContentType } from '@/db/models'
-
 export interface ContentListOptions {
-  type?: ContentType
+  type?: string
 }
 
 export interface ServiceResponse<T> {

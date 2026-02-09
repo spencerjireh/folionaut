@@ -1,9 +1,7 @@
-import type { ContentType } from '@/db/models'
-
 // Content Events
 export interface ContentCreatedEvent {
   id: string
-  type: ContentType
+  type: string
   slug: string
   version: number
   changedBy: string
@@ -11,7 +9,7 @@ export interface ContentCreatedEvent {
 
 export interface ContentUpdatedEvent {
   id: string
-  type: ContentType
+  type: string
   version: number
   previousVersion: number
   changedFields: string[]
@@ -20,14 +18,14 @@ export interface ContentUpdatedEvent {
 
 export interface ContentDeletedEvent {
   id: string
-  type: ContentType
+  type: string
   hard: boolean
   changedBy: string
 }
 
 export interface ContentRestoredEvent {
   id: string
-  type: ContentType
+  type: string
   fromVersion: number
   toVersion: number
   changedBy: string

@@ -1,12 +1,6 @@
 import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js'
 import { contentRepository } from '@/repositories/content.repository'
 import { SummarizePortfolioPromptArgsShape } from '../schemas'
-import type {
-  ProjectData,
-  SkillsListData,
-  ExperienceListData,
-  SiteConfigData,
-} from '@/validation/content.schemas'
 
 export function registerSummarizePortfolio(server: McpServer) {
   server.prompt(
@@ -18,28 +12,45 @@ export function registerSummarizePortfolio(server: McpServer) {
       const bundle = await contentRepository.getBundle()
 
       // Prepare portfolio data
-      const projectSummaries = bundle.projects.map((p) => {
-        const data = p.data as ProjectData
-        return `- ${data.title}: ${data.description} (Tags: ${data.tags.join(', ')})`
+      const projects = bundle['project'] ?? []
+      const projectSummaries = projects.map((p) => {
+        const data = p.data as Record<string, unknown>
+        const title = data.title ?? 'Untitled'
+        const description = data.description ?? ''
+        const tags = Array.isArray(data.tags) ? (data.tags as string[]).join(', ') : ''
+        return `- ${title}: ${description}${tags ? ` (Tags: ${tags})` : ''}`
       })
 
       let skillsSummary = ''
-      if (bundle.skills.length > 0) {
-        const skillsData = bundle.skills[0].data as SkillsListData
+      const skills = bundle['skill'] ?? []
+      if (skills.length > 0) {
+        const skillsData = skills[0].data as Record<string, unknown>
+        const items = (skillsData.items ?? []) as Array<{
+          name: string
+          category: string
+          proficiency?: number
+        }>
         const byCategory: Record<string, string[]> = {}
-        for (const skill of skillsData.items) {
+        for (const skill of items) {
           if (!byCategory[skill.category]) byCategory[skill.category] = []
           byCategory[skill.category].push(skill.name)
         }
         skillsSummary = Object.entries(byCategory)
-          .map(([cat, skills]) => `${cat}: ${skills.join(', ')}`)
+          .map(([cat, names]) => `${cat}: ${names.join(', ')}`)
           .join('\n')
       }
 
       let experienceSummary = ''
-      if (bundle.experiences.length > 0) {
-        const expData = bundle.experiences[0].data as ExperienceListData
-        experienceSummary = expData.items
+      const experiences = bundle['experience'] ?? []
+      if (experiences.length > 0) {
+        const expData = experiences[0].data as Record<string, unknown>
+        const items = (expData.items ?? []) as Array<{
+          role: string
+          company: string
+          startDate: string
+          endDate?: string | null
+        }>
+        experienceSummary = items
           .map(
             (exp) =>
               `- ${exp.role} at ${exp.company} (${exp.startDate} - ${exp.endDate ?? 'Present'})`
@@ -48,9 +59,13 @@ export function registerSummarizePortfolio(server: McpServer) {
       }
 
       let contactInfo = ''
-      if (bundle.contact) {
-        const contactData = bundle.contact.data as SiteConfigData
-        contactInfo = `Name: ${contactData.name}\nTitle: ${contactData.title}\nEmail: ${contactData.email}`
+      const contacts = bundle['contact'] ?? []
+      if (contacts.length > 0) {
+        const contactData = contacts[0].data as Record<string, unknown>
+        const name = contactData.name ?? ''
+        const title = contactData.title ?? ''
+        const email = contactData.email ?? ''
+        contactInfo = `Name: ${name}\nTitle: ${title}\nEmail: ${email}`
       }
 
       // Build audience-specific instructions

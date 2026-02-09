@@ -1,7 +1,6 @@
 import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js'
 import { contentRepository } from '@/repositories/content.repository'
 import { ExplainProjectPromptArgsShape } from '../schemas'
-import type { ProjectData } from '@/validation/content.schemas'
 
 export function registerExplainProject(server: McpServer) {
   server.prompt(
@@ -26,24 +25,30 @@ export function registerExplainProject(server: McpServer) {
         }
       }
 
-      const data = project.data as ProjectData
+      const data = project.data as Record<string, unknown>
+      const title = (data.title as string) ?? 'Untitled'
+      const description = (data.description as string) ?? ''
+      const tags = Array.isArray(data.tags) ? (data.tags as string[]).join(', ') : ''
+      const featured = data.featured ? 'Yes' : 'No'
+      const links = data.links as Record<string, string> | undefined
+      const contentText = (data.content as string) ?? 'No detailed content available'
 
       const projectInfo = `
-## Project: ${data.title}
+## Project: ${title}
 
-**Description:** ${data.description}
+**Description:** ${description}
 
-**Tags:** ${data.tags.join(', ')}
+**Tags:** ${tags}
 
-**Featured:** ${data.featured ? 'Yes' : 'No'}
+**Featured:** ${featured}
 
 **Links:**
-${data.links?.github ? `- GitHub: ${data.links.github}` : ''}
-${data.links?.live ? `- Live: ${data.links.live}` : ''}
-${data.links?.demo ? `- Demo: ${data.links.demo}` : ''}
+${links?.github ? `- GitHub: ${links.github}` : ''}
+${links?.live ? `- Live: ${links.live}` : ''}
+${links?.demo ? `- Demo: ${links.demo}` : ''}
 
 **Full Content:**
-${data.content || 'No detailed content available'}
+${contentText}
 `
 
       let instructions = ''
