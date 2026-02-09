@@ -32,7 +32,7 @@ describe('Error handling and edge cases (E2E)', () => {
   })
 
   describeLocal('body size limit (local)', () => {
-    it('POST with body >100kb is rejected', async () => {
+    it('POST with body >100kb is rejected with 413', async () => {
       const res = await api()
         .post('/api/v1/admin/content')
         .set(adminHeaders())
@@ -45,10 +45,23 @@ describe('Error handling and edge cases (E2E)', () => {
           },
         })
 
-      // body-parser PayloadTooLargeError has status=413 but the custom error
-      // handler doesn't extract err.status, so it falls through to 500
-      expect(res.status).toBeGreaterThanOrEqual(400)
-      expect(res.status).toBeLessThan(600)
+      expect(res.status).toBe(413)
+      expect(res.body.error.code).toBe('PAYLOAD_TOO_LARGE')
+      expect(res.body.error.message).toBe('Request body too large')
+    })
+  })
+
+  describeLocal('malformed JSON (local)', () => {
+    it('POST with invalid JSON is rejected with 400', async () => {
+      const res = await api()
+        .post('/api/v1/admin/content')
+        .set(adminHeaders())
+        .set('Content-Type', 'application/json')
+        .send('{ invalid json }')
+
+      expect(res.status).toBe(400)
+      expect(res.body.error.code).toBe('BAD_REQUEST')
+      expect(res.body.error.message).toBe('Malformed request body')
     })
   })
 

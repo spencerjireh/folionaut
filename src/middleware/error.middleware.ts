@@ -51,6 +51,19 @@ export function errorHandlerMiddleware(
     return
   }
 
+  // Body-parser errors (malformed JSON, payload too large, etc.)
+  if ('status' in err && typeof (err as any).status === 'number') {
+    const status = (err as any).status as number
+    const code = status === 413 ? 'PAYLOAD_TOO_LARGE' : 'BAD_REQUEST'
+    const message = status === 413 ? 'Request body too large' : 'Malformed request body'
+
+    logger.warn({ err, requestId }, 'Request error')
+    res.status(status).json({
+      error: { code, message, requestId },
+    })
+    return
+  }
+
   logger.error({ err, requestId }, 'Unexpected error')
 
   const response: ErrorResponse = {

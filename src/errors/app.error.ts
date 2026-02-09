@@ -60,6 +60,12 @@ export class ConflictError extends AppError {
   }
 }
 
+export class BadRequestError extends AppError {
+  constructor(message = 'Bad request') {
+    super(message, 'BAD_REQUEST', 400)
+  }
+}
+
 export class LLMError extends AppError {
   public readonly provider: string
 
