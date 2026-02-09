@@ -131,10 +131,11 @@ describe('Admin Content Routes Integration', () => {
     it('should filter by type', async () => {
       mockContentRepository.findAll.mockResolvedValue([])
 
-      await request(app)
+      const response = await request(app)
         .get('/api/v1/admin/content?type=project')
         .set('X-Admin-Key', TEST_ADMIN_KEY)
 
+      expect(response.status).toBe(200)
       expect(mockContentRepository.findAll).toHaveBeenCalledWith(
         expect.objectContaining({ type: 'project' })
       )
@@ -143,10 +144,11 @@ describe('Admin Content Routes Integration', () => {
     it('should filter by status', async () => {
       mockContentRepository.findAll.mockResolvedValue([])
 
-      await request(app)
+      const response = await request(app)
         .get('/api/v1/admin/content?status=draft')
         .set('X-Admin-Key', TEST_ADMIN_KEY)
 
+      expect(response.status).toBe(200)
       expect(mockContentRepository.findAll).toHaveBeenCalledWith(
         expect.objectContaining({ status: 'draft' })
       )
@@ -155,10 +157,11 @@ describe('Admin Content Routes Integration', () => {
     it('should include deleted when requested', async () => {
       mockContentRepository.findAll.mockResolvedValue([])
 
-      await request(app)
+      const response = await request(app)
         .get('/api/v1/admin/content?includeDeleted=true')
         .set('X-Admin-Key', TEST_ADMIN_KEY)
 
+      expect(response.status).toBe(200)
       expect(mockContentRepository.findAll).toHaveBeenCalledWith(
         expect.objectContaining({ includeDeleted: true })
       )
@@ -167,10 +170,11 @@ describe('Admin Content Routes Integration', () => {
     it('should paginate with limit and offset', async () => {
       mockContentRepository.findAll.mockResolvedValue([])
 
-      await request(app)
+      const response = await request(app)
         .get('/api/v1/admin/content?limit=10&offset=5')
         .set('X-Admin-Key', TEST_ADMIN_KEY)
 
+      expect(response.status).toBe(200)
       expect(mockContentRepository.findAll).toHaveBeenCalledWith(
         expect.objectContaining({ limit: 10, offset: 5 })
       )
@@ -231,18 +235,35 @@ describe('Admin Content Routes Integration', () => {
       mockCache.get.mockResolvedValue(null)
 
       const idempotencyKey = 'unique-key-123'
+      const payload = {
+        type: 'project',
+        slug: 'idem-project',
+        data: { title: 'Idempotent', description: 'Test', technologies: [], links: {} },
+      }
 
       const response1 = await request(app)
         .post('/api/v1/admin/content')
         .set('X-Admin-Key', TEST_ADMIN_KEY)
         .set('Idempotency-Key', idempotencyKey)
-        .send({
-          type: 'project',
-          slug: 'idem-project',
-          data: { title: 'Idempotent', description: 'Test', technologies: [], links: {} },
-        })
+        .send(payload)
 
       expect(response1.status).toBe(201)
+
+      // Simulate cache returning the stored response for the same idempotency key
+      const cachedValue = mockCache.set.mock.calls[0][1]
+      mockCache.get.mockResolvedValue(cachedValue)
+
+      const response2 = await request(app)
+        .post('/api/v1/admin/content')
+        .set('X-Admin-Key', TEST_ADMIN_KEY)
+        .set('Idempotency-Key', idempotencyKey)
+        .send(payload)
+
+      expect(response2.status).toBe(201)
+      expect(response2.headers['x-idempotent-replayed']).toBe('true')
+      expect(response2.body).toEqual(response1.body)
+      // create should only have been called once (for the first request)
+      expect(mockContentRepository.create).toHaveBeenCalledTimes(1)
     })
 
     it('should emit content:created event', async () => {

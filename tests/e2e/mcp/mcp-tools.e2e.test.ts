@@ -2,9 +2,23 @@ import { createMcpTestClient, type McpTestContext } from './helpers/mcp-test-cli
 
 describe('MCP Tools (E2E)', () => {
   let ctx: McpTestContext
+  let seededProjectId: string
 
   beforeAll(async () => {
     ctx = await createMcpTestClient()
+
+    // Seed a project that read/update tests can reference
+    const seedResult = await ctx.client.callTool({
+      name: 'create_content',
+      arguments: {
+        type: 'project',
+        slug: 'mcp-seeded-project',
+        data: { title: 'MCP Seeded', description: 'Seeded via beforeAll', tags: ['seeded'] },
+        status: 'published',
+      },
+    })
+    const parsed = JSON.parse((seedResult.content as Array<{ text: string }>)[0].text)
+    seededProjectId = parsed.item.id
   }, 30000)
 
   afterAll(async () => {
@@ -35,8 +49,8 @@ describe('MCP Tools (E2E)', () => {
       name: 'create_content',
       arguments: {
         type: 'project',
-        slug: 'mcp-test-project',
-        data: { title: 'MCP Test', description: 'Created via MCP', tags: ['mcp'] },
+        slug: 'mcp-create-test',
+        data: { title: 'MCP Create Test', description: 'Created via MCP', tags: ['mcp'] },
         status: 'published',
       },
     })
@@ -44,16 +58,16 @@ describe('MCP Tools (E2E)', () => {
     expect(result.isError).toBeFalsy()
     const parsed = JSON.parse((result.content as Array<{ text: string }>)[0].text)
     expect(parsed.item).toHaveProperty('id')
-    expect(parsed.item.slug).toBe('mcp-test-project')
+    expect(parsed.item.slug).toBe('mcp-create-test')
   })
 
   it('duplicate slug returns error', async () => {
-    // First create should succeed (or already exists from previous test)
+    // First create should succeed
     await ctx.client.callTool({
       name: 'create_content',
       arguments: {
         type: 'project',
-        slug: 'dup-slug',
+        slug: 'mcp-dup-slug',
         data: { title: 'Dup 1', description: 'First', tags: [] },
       },
     })
@@ -62,7 +76,7 @@ describe('MCP Tools (E2E)', () => {
       name: 'create_content',
       arguments: {
         type: 'project',
-        slug: 'dup-slug',
+        slug: 'mcp-dup-slug',
         data: { title: 'Dup 2', description: 'Second', tags: [] },
       },
     })
@@ -86,20 +100,20 @@ describe('MCP Tools (E2E)', () => {
   it('get_content returns item envelope', async () => {
     const result = await ctx.client.callTool({
       name: 'get_content',
-      arguments: { type: 'project', slug: 'mcp-test-project' },
+      arguments: { type: 'project', slug: 'mcp-seeded-project' },
     })
 
     expect(result.isError).toBeFalsy()
     const parsed = JSON.parse((result.content as Array<{ text: string }>)[0].text)
     expect(parsed.item).toBeDefined()
-    expect(parsed.item.slug).toBe('mcp-test-project')
-    expect(parsed.item.data).toHaveProperty('title', 'MCP Test')
+    expect(parsed.item.slug).toBe('mcp-seeded-project')
+    expect(parsed.item.data).toHaveProperty('title', 'MCP Seeded')
   })
 
   it('search_content returns items envelope', async () => {
     const result = await ctx.client.callTool({
       name: 'search_content',
-      arguments: { query: 'MCP Test' },
+      arguments: { query: 'MCP Seeded' },
     })
 
     expect(result.isError).toBeFalsy()
@@ -110,18 +124,10 @@ describe('MCP Tools (E2E)', () => {
   })
 
   it('update_content increments version', async () => {
-    // Get the ID via get_content
-    const getResult = await ctx.client.callTool({
-      name: 'get_content',
-      arguments: { type: 'project', slug: 'mcp-test-project' },
-    })
-    const getParsed = JSON.parse((getResult.content as Array<{ text: string }>)[0].text)
-    const id = getParsed.item.id
-
     const updateResult = await ctx.client.callTool({
       name: 'update_content',
       arguments: {
-        id,
+        id: seededProjectId,
         data: { title: 'MCP Updated', description: 'Updated via MCP', tags: ['mcp', 'updated'] },
       },
     })

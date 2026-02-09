@@ -86,6 +86,8 @@ describe('Error handling and edge cases (E2E)', () => {
       expect(res.body).toHaveProperty('error')
       expect(res.body.error.code).toBe('VALIDATION_ERROR')
       expect(typeof res.body.error.message).toBe('string')
+      expect(res.body.error.fields).toBeDefined()
+      expect(typeof res.body.error.fields).toBe('object')
     })
 
     it('409 has { error: { code, message } }', async () => {

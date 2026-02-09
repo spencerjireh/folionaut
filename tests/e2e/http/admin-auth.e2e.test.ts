@@ -48,7 +48,7 @@ describe('Admin authentication (E2E)', () => {
 
     for (const path of publicRoutes) {
       const res = await api().get(path)
-      expect(res.status).not.toBe(401)
+      expect(res.status).toBe(200)
     }
   })
 })

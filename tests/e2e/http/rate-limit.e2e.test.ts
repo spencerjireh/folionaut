@@ -30,19 +30,37 @@ describeLocal('Rate limiting (E2E - local)', () => {
   })
 
   it('different IPs have independent rate limits', async () => {
-    setNextResponses([textResponse('IP1'), textResponse('IP2')])
+    const capacity = 5
+    const ip1 = '10.0.1.10'
+    const ip2 = '10.0.1.11'
 
-    const res1 = await api()
-      .post('/api/v1/chat')
-      .set('X-Forwarded-For', '10.0.1.1')
-      .send({ message: 'Hi', visitorId: 'ip1-visitor' })
+    // Exhaust IP1's bucket
+    const ip1Responses = Array.from({ length: capacity + 1 }, (_, i) =>
+      textResponse(`IP1-${i}`)
+    )
+    setNextResponses(ip1Responses)
 
-    const res2 = await api()
+    for (let i = 0; i < capacity + 1; i++) {
+      await api()
+        .post('/api/v1/chat')
+        .set('X-Forwarded-For', ip1)
+        .send({ message: `Msg ${i}`, visitorId: `ip1-visitor-${i}` })
+    }
+
+    // Confirm IP1 is rate limited
+    setNextResponses([textResponse('IP1-extra')])
+    const ip1Res = await api()
       .post('/api/v1/chat')
-      .set('X-Forwarded-For', '10.0.1.2')
+      .set('X-Forwarded-For', ip1)
+      .send({ message: 'One more', visitorId: 'ip1-visitor-extra' })
+    expect(ip1Res.status).toBe(429)
+
+    // IP2 should still work
+    setNextResponses([textResponse('IP2')])
+    const ip2Res = await api()
+      .post('/api/v1/chat')
+      .set('X-Forwarded-For', ip2)
       .send({ message: 'Hi', visitorId: 'ip2-visitor' })
-
-    expect(res1.status).toBe(200)
-    expect(res2.status).toBe(200)
+    expect(ip2Res.status).toBe(200)
   })
 })

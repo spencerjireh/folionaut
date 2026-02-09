@@ -23,16 +23,28 @@ describeLocal('Content rate limiting (E2E - local)', () => {
   })
 
   it('different IPs have independent content rate limits', async () => {
-    const res1 = await api()
-      .get('/api/v1/content')
-      .set('X-Forwarded-For', '10.20.1.1')
+    const capacity = 10
+    const ip1 = '10.20.1.10'
+    const ip2 = '10.20.1.11'
 
-    const res2 = await api()
-      .get('/api/v1/content')
-      .set('X-Forwarded-For', '10.20.1.2')
+    // Exhaust IP1's content rate limit
+    for (let i = 0; i < capacity; i++) {
+      await api()
+        .get('/api/v1/content')
+        .set('X-Forwarded-For', ip1)
+    }
 
-    expect(res1.status).toBe(200)
-    expect(res2.status).toBe(200)
+    // Confirm IP1 is rate limited
+    const ip1Res = await api()
+      .get('/api/v1/content')
+      .set('X-Forwarded-For', ip1)
+    expect(ip1Res.status).toBe(429)
+
+    // IP2 should still work
+    const ip2Res = await api()
+      .get('/api/v1/content')
+      .set('X-Forwarded-For', ip2)
+    expect(ip2Res.status).toBe(200)
   })
 
   it('content and chat rate limits are independent', async () => {
