@@ -61,6 +61,12 @@ export interface ChatRateLimitedEvent {
   retryAfter: number
 }
 
+export interface ContentRateLimitedEvent {
+  ipHash: string
+  retryAfter: number
+  path: string
+}
+
 // Circuit Breaker Events
 export type CircuitState = 'closed' | 'open' | 'half_open'
 
@@ -97,6 +103,7 @@ export interface EventMap {
   'chat:session_started': ChatSessionStartedEvent
   'chat:session_ended': ChatSessionEndedEvent
   'chat:rate_limited': ChatRateLimitedEvent
+  'content:rate_limited': ContentRateLimitedEvent
   'circuit:state_changed': CircuitStateChangedEvent
   'cache:invalidated': CacheInvalidatedEvent
   'admin:action': AdminActionEvent

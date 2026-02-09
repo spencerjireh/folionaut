@@ -19,15 +19,18 @@ export class RateLimiter {
   private readonly capacity: number
   private readonly refillRate: number
   private readonly ttl: number
+  private readonly keyPrefix: string
 
   constructor(
     capacity: number = env.RATE_LIMIT_CAPACITY,
     refillRate: number = env.RATE_LIMIT_REFILL_RATE,
-    ttl: number = DEFAULT_TTL
+    ttl: number = DEFAULT_TTL,
+    keyPrefix: string = CacheKeys.TOKEN_BUCKET
   ) {
     this.capacity = capacity
     this.refillRate = refillRate
     this.ttl = ttl
+    this.keyPrefix = keyPrefix
   }
 
   /**
@@ -36,7 +39,7 @@ export class RateLimiter {
    */
   async consume(ipHash: string): Promise<RateLimitResult> {
     try {
-      const key = `${CacheKeys.TOKEN_BUCKET}:${ipHash}`
+      const key = `${this.keyPrefix}:${ipHash}`
       const now = Date.now()
       const cache = getCache()
 
@@ -75,7 +78,7 @@ export class RateLimiter {
    * Checks the current rate limit status without consuming a token.
    */
   async peek(ipHash: string): Promise<RateLimitResult> {
-    const key = `${CacheKeys.TOKEN_BUCKET}:${ipHash}`
+    const key = `${this.keyPrefix}:${ipHash}`
     const now = Date.now()
     const cache = getCache()
 

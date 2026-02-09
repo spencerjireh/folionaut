@@ -105,6 +105,20 @@ export function registerAuditHandlers(): void {
     )
   })
 
+  eventEmitter.on('content:rate_limited', (data) => {
+    logger.warn(
+      {
+        audit: true,
+        action: 'content:rate_limited',
+        ipHash: data.ipHash,
+        retryAfter: data.retryAfter,
+        path: data.path,
+        timestamp: new Date().toISOString(),
+      },
+      `Audit: content:rate_limited - retryAfter: ${data.retryAfter}s`
+    )
+  })
+
   // Circuit breaker events
   eventEmitter.on('circuit:state_changed', (data) => {
     logger.warn(

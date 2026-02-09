@@ -19,6 +19,8 @@ const envSchema = z.object({
   CHAT_REQUEST_TIMEOUT_MS: z.coerce.number().default(60000),
   RATE_LIMIT_CAPACITY: z.coerce.number().default(5),
   RATE_LIMIT_REFILL_RATE: z.coerce.number().default(0.333),
+  CONTENT_RATE_LIMIT_CAPACITY: z.coerce.number().default(60),
+  CONTENT_RATE_LIMIT_REFILL_RATE: z.coerce.number().default(10),
   CORS_ORIGINS: z.string().default(''),
   OTEL_ENABLED: z.coerce.boolean().default(false),
 })

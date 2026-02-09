@@ -42,6 +42,10 @@ export function registerMetricsHandlers(): void {
     rateLimitHitsTotal.inc()
   })
 
+  eventEmitter.on('content:rate_limited', () => {
+    rateLimitHitsTotal.inc()
+  })
+
   // Circuit breaker state change
   eventEmitter.on('circuit:state_changed', (data) => {
     const stateValue = CIRCUIT_STATE_VALUES[data.newState] ?? 0

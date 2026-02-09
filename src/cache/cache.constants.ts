@@ -5,6 +5,7 @@ export const CacheKeys = {
   IDEMPOTENCY: 'idempotency',
   RATE_LIMIT: 'ratelimit',
   TOKEN_BUCKET: 'tokenbucket',
+  CONTENT_TOKEN_BUCKET: 'content_tokenbucket',
 } as const
 
 export const CacheTTL = {

@@ -9,6 +9,7 @@ export type {
   ChatSessionStartedEvent,
   ChatSessionEndedEvent,
   ChatRateLimitedEvent,
+  ContentRateLimitedEvent,
   CircuitState,
   CircuitStateChangedEvent,
   CacheInvalidatedEvent,

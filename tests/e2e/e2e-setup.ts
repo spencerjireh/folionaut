@@ -24,6 +24,8 @@ process.env.REQUEST_TIMEOUT_MS = '30000'
 process.env.CHAT_REQUEST_TIMEOUT_MS = '30000'
 process.env.RATE_LIMIT_CAPACITY = '5'
 process.env.RATE_LIMIT_REFILL_RATE = '0.333'
+process.env.CONTENT_RATE_LIMIT_CAPACITY = '10'
+process.env.CONTENT_RATE_LIMIT_REFILL_RATE = '1'
 process.env.CORS_ORIGINS = 'http://localhost:3000'
 process.env.OTEL_ENABLED = 'false'
 delete process.env.REDIS_URL

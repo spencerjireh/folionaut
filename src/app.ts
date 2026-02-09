@@ -9,6 +9,8 @@ import { httpLogger } from './lib/logger'
 import { errorHandlerMiddleware } from '@/middleware/error.middleware'
 import { adminAuthMiddleware } from '@/middleware/admin-auth.middleware'
 import { NotFoundError } from './errors/app.error'
+import { rateLimitMiddleware } from '@/middleware/rate-limit.middleware'
+import { CacheKeys } from '@/cache/cache.constants'
 import { healthRouter } from './routes/health.routes'
 import { metricsRouter } from './routes/metrics.routes'
 import { contentRouter } from './routes/v1/content.routes'
@@ -52,7 +54,15 @@ export function createApp() {
   app.use('/api/metrics', adminAuthMiddleware(), metricsRouter)
 
   // Public API routes
-  app.use('/api/v1/content', contentRouter)
+  app.use(
+    '/api/v1/content',
+    rateLimitMiddleware({
+      capacity: env.CONTENT_RATE_LIMIT_CAPACITY,
+      refillRate: env.CONTENT_RATE_LIMIT_REFILL_RATE,
+      keyPrefix: CacheKeys.CONTENT_TOKEN_BUCKET,
+    }),
+    contentRouter
+  )
   app.use('/api/v1/chat', chatRouter)
 
   // Admin API routes
