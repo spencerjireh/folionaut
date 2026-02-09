@@ -23,7 +23,15 @@ import type {
   SessionListOptions,
 } from './chat.types'
 
-export type { CapturedToolCall, ChatSession, SendMessageInput, ChatMessageResponse, ChatResponse, SessionWithMessages, SessionListOptions } from './chat.types'
+export type {
+  CapturedToolCall,
+  ChatSession,
+  SendMessageInput,
+  ChatMessageResponse,
+  ChatResponse,
+  SessionWithMessages,
+  SessionListOptions,
+} from './chat.types'
 
 const MAX_TOOL_ITERATIONS = 5
 
@@ -392,7 +400,6 @@ class ChatService {
 
     return history
   }
-
 }
 
 export const chatService = new ChatService()

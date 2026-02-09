@@ -15,7 +15,12 @@ interface ErrorResponse {
   }
 }
 
-export function errorHandlerMiddleware(err: Error, _req: Request, res: Response, _next: NextFunction): void {
+export function errorHandlerMiddleware(
+  err: Error,
+  _req: Request,
+  res: Response,
+  _next: NextFunction
+): void {
   const context = getRequestContext()
   const requestId = context?.requestId
 

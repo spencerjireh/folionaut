@@ -34,16 +34,19 @@ async function start() {
   registerMetricsHandlers()
 
   // Hourly cleanup of expired chat sessions
-  setInterval(async () => {
-    try {
-      const count = await chatRepository.deleteExpired()
-      if (count > 0) {
-        logger.info({ count }, 'Expired chat sessions cleaned up')
+  setInterval(
+    async () => {
+      try {
+        const count = await chatRepository.deleteExpired()
+        if (count > 0) {
+          logger.info({ count }, 'Expired chat sessions cleaned up')
+        }
+      } catch (error) {
+        logger.warn({ error }, 'Failed to clean up expired chat sessions')
       }
-    } catch (error) {
-      logger.warn({ error }, 'Failed to clean up expired chat sessions')
-    }
-  }, 60 * 60 * 1000)
+    },
+    60 * 60 * 1000
+  )
 
   const app = createApp()
 

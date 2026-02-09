@@ -4,7 +4,6 @@ import { llmRequestsTotal, llmRequestDuration } from '@/observability'
 import { withRetry } from './retry'
 import type { LLMProvider, LLMMessage, LLMOptions, LLMResponse, ToolCall } from './types'
 
-
 interface OpenAIToolCall {
   id: string
   type: 'function'

@@ -135,9 +135,7 @@ export class ChatRepository {
     const result = await db
       .update(chatSessions)
       .set({ status: 'expired' as SessionStatus })
-      .where(
-        and(eq(chatSessions.status, 'active'), lt(chatSessions.expiresAt, now))
-      )
+      .where(and(eq(chatSessions.status, 'active'), lt(chatSessions.expiresAt, now)))
     return result.rowsAffected
   }
 
