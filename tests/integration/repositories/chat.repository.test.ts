@@ -1,178 +1,20 @@
-import { eq, and, lt, desc, sql } from 'drizzle-orm'
-import type { LibSQLDatabase } from 'drizzle-orm/libsql'
+import { eq } from 'drizzle-orm'
 import { createTestDb, initializeSchema, cleanupTestDb, closeTestDb, type TestDb } from '../../helpers/test-db'
-import * as schema from '@/db/schema'
-import { chatSessions, chatMessages } from '@/db/schema'
-import type { ChatSession, ChatMessage, SessionStatus, ChatStats } from '@/db/models'
+import { chatSessions } from '@/db/schema'
 
-const SESSION_EXPIRY_HOURS = 24
-
-// Test repository that accepts a db instance
-class TestChatRepository {
-  constructor(private db: LibSQLDatabase<typeof schema>) {}
-
-  async createSession(dto: { visitorId: string; ipHash: string; userAgent?: string }): Promise<ChatSession> {
-    const id = `sess_test_${Date.now()}_${Math.random().toString(36).slice(2)}`
-    const now = new Date()
-    const expiresAt = new Date(now.getTime() + SESSION_EXPIRY_HOURS * 60 * 60 * 1000)
-
-    const newSession: ChatSession = {
-      id,
-      visitorId: dto.visitorId,
-      ipHash: dto.ipHash,
-      userAgent: dto.userAgent ?? null,
-      messageCount: 0,
-      status: 'active',
-      createdAt: now.toISOString(),
-      lastActiveAt: now.toISOString(),
-      expiresAt: expiresAt.toISOString(),
-    }
-
-    await this.db.insert(chatSessions).values(newSession)
-    return newSession
-  }
-
-  async findSession(id: string): Promise<ChatSession | null> {
-    const result = await this.db.select().from(chatSessions).where(eq(chatSessions.id, id)).limit(1)
-    return result.length > 0 ? result[0] : null
-  }
-
-  async findActiveSession(visitorId: string): Promise<ChatSession | null> {
-    const now = new Date().toISOString()
-
-    const result = await this.db
-      .select()
-      .from(chatSessions)
-      .where(
-        and(
-          eq(chatSessions.visitorId, visitorId),
-          eq(chatSessions.status, 'active'),
-          sql`${chatSessions.expiresAt} > ${now}`
-        )
-      )
-      .orderBy(desc(chatSessions.lastActiveAt))
-      .limit(1)
-
-    return result.length > 0 ? result[0] : null
-  }
-
-  async updateActivity(id: string): Promise<boolean> {
-    const now = new Date().toISOString()
-
-    const result = await this.db
-      .update(chatSessions)
-      .set({ lastActiveAt: now })
-      .where(eq(chatSessions.id, id))
-
-    return result.rowsAffected > 0
-  }
-
-  async endSession(id: string, status: SessionStatus = 'ended'): Promise<boolean> {
-    const now = new Date().toISOString()
-
-    const result = await this.db
-      .update(chatSessions)
-      .set({ status, lastActiveAt: now })
-      .where(eq(chatSessions.id, id))
-
-    return result.rowsAffected > 0
-  }
-
-  async addMessage(
-    sessionId: string,
-    dto: { role: 'user' | 'assistant' | 'system'; content: string; tokensUsed?: number; model?: string }
-  ): Promise<ChatMessage> {
-    const id = `msg_test_${Date.now()}_${Math.random().toString(36).slice(2)}`
-    const now = new Date().toISOString()
-
-    const newMessage: ChatMessage = {
-      id,
-      sessionId,
-      role: dto.role,
-      content: dto.content,
-      tokensUsed: dto.tokensUsed ?? null,
-      model: dto.model ?? null,
-      createdAt: now,
-    }
-
-    await this.db.batch([
-      this.db.insert(chatMessages).values(newMessage),
-      this.db
-        .update(chatSessions)
-        .set({
-          messageCount: sql`${chatSessions.messageCount} + 1`,
-          lastActiveAt: now,
-        })
-        .where(eq(chatSessions.id, sessionId)),
-    ])
-
-    return newMessage
-  }
-
-  async getMessages(sessionId: string, limit = 100, offset = 0): Promise<ChatMessage[]> {
-    return this.db
-      .select()
-      .from(chatMessages)
-      .where(eq(chatMessages.sessionId, sessionId))
-      .orderBy(chatMessages.createdAt)
-      .limit(limit)
-      .offset(offset)
-  }
-
-  async findExpired(olderThan: Date): Promise<ChatSession[]> {
-    return this.db
-      .select()
-      .from(chatSessions)
-      .where(and(eq(chatSessions.status, 'active'), lt(chatSessions.expiresAt, olderThan.toISOString())))
-  }
-
-  async deleteExpired(): Promise<number> {
-    const now = new Date().toISOString()
-    const result = await this.db
-      .update(chatSessions)
-      .set({ status: 'expired' as SessionStatus })
-      .where(
-        and(eq(chatSessions.status, 'active'), lt(chatSessions.expiresAt, now))
-      )
-    return result.rowsAffected
-  }
-
-  async getStats(sessionId: string): Promise<ChatStats | null> {
-    const session = await this.findSession(sessionId)
-    if (!session) return null
-
-    const tokensResult = await this.db
-      .select({
-        totalTokens: sql<number>`COALESCE(SUM(${chatMessages.tokensUsed}), 0)`,
-      })
-      .from(chatMessages)
-      .where(eq(chatMessages.sessionId, sessionId))
-
-    const totalTokens = tokensResult[0]?.totalTokens ?? 0
-
-    const startTime = new Date(session.createdAt).getTime()
-    const lastActiveTime = new Date(session.lastActiveAt).getTime()
-    const durationMs = lastActiveTime - startTime
-
-    return {
-      sessionId,
-      messageCount: session.messageCount,
-      totalTokens,
-      durationMs,
-      startedAt: session.createdAt,
-      lastActiveAt: session.lastActiveAt,
-    }
-  }
-}
+const mockDb = vi.hoisted(() => ({ db: null as any }))
+vi.mock('@/db/client', () => ({ get db() { return mockDb.db } }))
 
 describe('ChatRepository Integration', () => {
   let testDb: TestDb
-  let repository: TestChatRepository
+  let repository: import('@/repositories/chat.repository').ChatRepository
 
   beforeAll(async () => {
     testDb = createTestDb()
     await initializeSchema(testDb.db)
-    repository = new TestChatRepository(testDb.db)
+    mockDb.db = testDb.db
+    const { ChatRepository } = await import('@/repositories/chat.repository')
+    repository = new ChatRepository()
   })
 
   beforeEach(async () => {
