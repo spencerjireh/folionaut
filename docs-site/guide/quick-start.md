@@ -173,5 +173,5 @@ docker-compose up
 ## Next Steps
 
 - [Configuration](/guide/configuration) - All environment variables
-- [API Reference](/api/reference) - Full API documentation
+- [API Reference](/api/) - Full API documentation
 - [MCP Server](/integrations/mcp-server) - Set up AI integration

@@ -690,7 +690,7 @@ export class ChatService {
 }
 ```
 
-See [API Reference - Error Codes](/api/reference#error-codes) for error response examples and the full status code mapping.
+See [Schemas & Errors - Error Codes](/api/schemas#error-codes) for error response examples and the full status code mapping.
 
 ## Testing Strategy
 

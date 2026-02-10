@@ -69,7 +69,12 @@ export default withMermaid(defineConfig({
           text: 'API',
           items: [
             { text: 'Overview', link: '/api/' },
-            { text: 'Reference', link: '/api/reference' }
+            { text: 'Conventions', link: '/api/conventions' },
+            { text: 'Content', link: '/api/content' },
+            { text: 'Chat', link: '/api/chat' },
+            { text: 'Admin', link: '/api/admin' },
+            { text: 'Infrastructure', link: '/api/infrastructure' },
+            { text: 'Schemas & Errors', link: '/api/schemas' }
           ]
         }
       ],
