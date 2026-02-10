@@ -140,4 +140,4 @@ bun run mcp        # Start MCP server
 
 ## License
 
-MIT
+This project is licensed under the [MIT License](LICENSE).
