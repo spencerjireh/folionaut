@@ -24,6 +24,11 @@ export const TEST_ENV = {
   CONTENT_RATE_LIMIT_REFILL_RATE: '10',
   CORS_ORIGINS: 'http://localhost:3000',
   OTEL_ENABLED: 'false',
+  FEATURE_AI_CHAT: 'true',
+  FEATURE_MCP_SERVER: 'true',
+  FEATURE_ADMIN_API: 'true',
+  FEATURE_RATE_LIMITING: 'true',
+  FEATURE_AUDIT_LOG: 'true',
 }
 
 /**

@@ -30,25 +30,39 @@ async function start() {
 
   // Register event handlers
   registerCacheHandlers()
-  registerAuditHandlers()
+  if (env.FEATURE_AUDIT_LOG) {
+    registerAuditHandlers()
+  }
   registerMetricsHandlers()
 
   // Hourly cleanup of expired chat sessions
-  setInterval(
-    async () => {
-      try {
-        const count = await chatRepository.deleteExpired()
-        if (count > 0) {
-          logger.info({ count }, 'Expired chat sessions cleaned up')
+  if (env.FEATURE_AI_CHAT) {
+    setInterval(
+      async () => {
+        try {
+          const count = await chatRepository.deleteExpired()
+          if (count > 0) {
+            logger.info({ count }, 'Expired chat sessions cleaned up')
+          }
+        } catch (error) {
+          logger.warn({ error }, 'Failed to clean up expired chat sessions')
         }
-      } catch (error) {
-        logger.warn({ error }, 'Failed to clean up expired chat sessions')
-      }
-    },
-    60 * 60 * 1000
-  )
+      },
+      60 * 60 * 1000
+    )
+  }
 
   const app = createApp()
+
+  // Log active feature flags
+  const featureFlags = {
+    FEATURE_AI_CHAT: env.FEATURE_AI_CHAT,
+    FEATURE_MCP_SERVER: env.FEATURE_MCP_SERVER,
+    FEATURE_ADMIN_API: env.FEATURE_ADMIN_API,
+    FEATURE_RATE_LIMITING: env.FEATURE_RATE_LIMITING,
+    FEATURE_AUDIT_LOG: env.FEATURE_AUDIT_LOG,
+  }
+  logger.info({ featureFlags }, 'Feature flags')
 
   const server = app.listen(env.PORT, () => {
     logger.info({ port: env.PORT, env: env.NODE_ENV }, 'Server started')
@@ -62,7 +76,7 @@ async function start() {
       if (isCleanedUp) return
       isCleanedUp = true
       logger.info('Server closed')
-      closeMcpSessions()
+      if (env.FEATURE_MCP_SERVER) closeMcpSessions()
       await closeCache()
       client.close()
       logger.info('Database connection closed')
@@ -73,7 +87,7 @@ async function start() {
       if (isCleanedUp) return
       isCleanedUp = true
       logger.error('Forced shutdown after timeout')
-      closeMcpSessions()
+      if (env.FEATURE_MCP_SERVER) closeMcpSessions()
       await closeCache()
       client.close()
       process.exit(1)

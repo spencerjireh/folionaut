@@ -1,12 +1,13 @@
 import { eventEmitter } from '@/events'
 import { logger } from '@/lib/logger'
+import { env } from '@/config/env'
 
 /**
  * Register audit logging handlers for application events.
  */
 let auditHandlersRegistered = false
 export function registerAuditHandlers(): void {
-  if (auditHandlersRegistered) return
+  if (auditHandlersRegistered || !env.FEATURE_AUDIT_LOG) return
   auditHandlersRegistered = true
 
   // Content mutation events

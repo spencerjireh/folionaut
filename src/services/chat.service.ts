@@ -3,6 +3,7 @@ import { NotFoundError, RateLimitError } from '@/errors/app.error'
 import { eventEmitter } from '@/events'
 import { rateLimiter, CircuitBreaker } from '@/resilience'
 import { getLLMProvider } from '@/llm'
+import { env } from '@/config/env'
 import type { LLMMessage } from '@/llm'
 import { chatToolDefinitions, executeToolCall } from '@/tools'
 import { logger } from '@/lib/logger'
@@ -115,10 +116,12 @@ class ChatService {
     const { visitorId, ipHash, message, userAgent, includeToolCalls } = input
 
     // 1. Rate limit check
-    const rateLimitResult = await rateLimiter.consume(ipHash)
-    if (!rateLimitResult.allowed) {
-      rateLimiter.emitRateLimitEvent(ipHash, undefined, rateLimitResult.retryAfter)
-      throw new RateLimitError(rateLimitResult.retryAfter ?? 3)
+    if (env.FEATURE_RATE_LIMITING) {
+      const rateLimitResult = await rateLimiter.consume(ipHash)
+      if (!rateLimitResult.allowed) {
+        rateLimiter.emitRateLimitEvent(ipHash, undefined, rateLimitResult.retryAfter)
+        throw new RateLimitError(rateLimitResult.retryAfter ?? 3)
+      }
     }
 
     // 2. Get or create session

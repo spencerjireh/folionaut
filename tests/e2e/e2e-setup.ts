@@ -28,6 +28,11 @@ process.env.CONTENT_RATE_LIMIT_CAPACITY = '10'
 process.env.CONTENT_RATE_LIMIT_REFILL_RATE = '1'
 process.env.CORS_ORIGINS = 'http://localhost:3000'
 process.env.OTEL_ENABLED = 'false'
+process.env.FEATURE_AI_CHAT = 'true'
+process.env.FEATURE_MCP_SERVER = 'true'
+process.env.FEATURE_ADMIN_API = 'true'
+process.env.FEATURE_RATE_LIMITING = 'true'
+process.env.FEATURE_AUDIT_LOG = 'true'
 delete process.env.REDIS_URL
 
 // Now import source modules (env is already set)

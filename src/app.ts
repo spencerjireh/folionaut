@@ -51,26 +51,39 @@ export function createApp() {
   app.use('/api/health', healthRouter)
 
   // Metrics endpoint (admin-only)
-  app.use('/api/metrics', adminAuthMiddleware(), metricsRouter)
+  if (env.FEATURE_ADMIN_API) {
+    app.use('/api/metrics', adminAuthMiddleware(), metricsRouter)
+  }
 
   // Public API routes
-  app.use(
-    '/api/v1/content',
-    rateLimitMiddleware({
-      capacity: env.CONTENT_RATE_LIMIT_CAPACITY,
-      refillRate: env.CONTENT_RATE_LIMIT_REFILL_RATE,
-      keyPrefix: CacheKeys.CONTENT_TOKEN_BUCKET,
-    }),
-    contentRouter
-  )
-  app.use('/api/v1/chat', chatRouter)
+  if (env.FEATURE_RATE_LIMITING) {
+    app.use(
+      '/api/v1/content',
+      rateLimitMiddleware({
+        capacity: env.CONTENT_RATE_LIMIT_CAPACITY,
+        refillRate: env.CONTENT_RATE_LIMIT_REFILL_RATE,
+        keyPrefix: CacheKeys.CONTENT_TOKEN_BUCKET,
+      }),
+      contentRouter
+    )
+  } else {
+    app.use('/api/v1/content', contentRouter)
+  }
+
+  if (env.FEATURE_AI_CHAT) {
+    app.use('/api/v1/chat', chatRouter)
+  }
 
   // Admin API routes
-  app.use('/api/v1/admin/content', adminContentRouter)
-  app.use('/api/v1/admin/chat', adminChatRouter)
+  if (env.FEATURE_ADMIN_API) {
+    app.use('/api/v1/admin/content', adminContentRouter)
+    app.use('/api/v1/admin/chat', adminChatRouter)
+  }
 
   // MCP over HTTP (admin-only)
-  app.use('/api/mcp', adminAuthMiddleware(), mcpRouter)
+  if (env.FEATURE_MCP_SERVER) {
+    app.use('/api/mcp', adminAuthMiddleware(), mcpRouter)
+  }
 
   // 404 handler
   app.use((_req, _res, next) => {
