@@ -86,4 +86,16 @@ export const relevanceCases: EvalCase[] = [
     ],
     groundTruth: `${groundTruths.firstName} has a GitHub portfolio with projects including ${groundTruths.projectNames.join(', ')}.`,
   },
+  {
+    id: 'rel-009',
+    category: 'relevance',
+    input: `Who is ${groundTruths.firstName}?`,
+    expectedBehavior: 'Response should describe Spencer using data from the about content type',
+    assertions: [
+      { type: 'regex', value: 'software engineer|full.?stack|developer', flags: 'i' },
+      { type: 'notRegex', value: "don't have|no information|no.{0,20}details|not available", flags: 'i' },
+    ],
+    groundTruth: `${groundTruths.firstName} is a software engineer specializing in full-stack development and AI/ML systems.`,
+    expectedTools: ['list_content'],
+  },
 ]

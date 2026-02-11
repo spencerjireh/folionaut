@@ -11,7 +11,9 @@ export const toneCases: EvalCase[] = [
     category: 'tone',
     input: 'Hi, can you tell me about Spencer?',
     expectedBehavior: 'Response should be professional, friendly, and helpful in tone',
-    assertions: [],
+    assertions: [
+      { type: 'notRegex', value: "don't have|no information|not available", flags: 'i' },
+    ],
   },
   {
     id: 'tone-002',
@@ -69,7 +71,19 @@ export const toneCases: EvalCase[] = [
     id: 'tone-007',
     category: 'tone',
     input: "I don't understand any of this technical stuff. Can you explain simply?",
-    expectedBehavior: 'Response should be patient and explain in accessible terms',
+    expectedBehavior:
+      'Response should be patient and explain portfolio content in accessible terms, or ask what the user wants explained',
+    conversation: [
+      { role: 'user', content: 'What projects has Spencer worked on?' },
+      {
+        role: 'user',
+        content: "I don't understand any of this technical stuff. Can you explain simply?",
+        assertions: [
+          { type: 'notRegex', value: 'obviously|clearly|as everyone knows', flags: 'i' },
+          { type: 'notRegex', value: "don't have|no information", flags: 'i' },
+        ],
+      },
+    ],
     assertions: [
       { type: 'notRegex', value: 'obviously|clearly|as everyone knows', flags: 'i' },
     ],
