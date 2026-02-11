@@ -18,7 +18,7 @@ export const chatToolDefinitions: FunctionDefinition[] = [
   {
     name: 'list_content',
     description:
-      'List portfolio content items by type. Use list_types first to discover available types. Use this to get all items of a specific type.',
+      'List portfolio content items by type. Common types: project, experience, education, skill, about (biographical info, who Spencer is), contact. Use this for broad questions or identity questions like "Who is Spencer?" with type "about".',
     parameters: zodToJsonSchema(ListContentInputSchema, { $refStrategy: 'none' }),
   },
   {
