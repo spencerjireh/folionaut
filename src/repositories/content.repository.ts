@@ -151,10 +151,10 @@ export class ContentRepository {
       createdAt: now,
     }
 
-    await db.batch([
-      db.insert(content).values(newContent),
-      db.insert(contentHistory).values(historyEntry),
-    ])
+    await db.transaction(async (tx) => {
+      await tx.insert(content).values(newContent)
+      await tx.insert(contentHistory).values(historyEntry)
+    })
 
     return {
       ...newContent,
@@ -205,10 +205,10 @@ export class ContentRepository {
       contentUpdates.sortOrder = updates.sortOrder
     }
 
-    await db.batch([
-      db.insert(contentHistory).values(historyEntry),
-      db.update(content).set(contentUpdates).where(eq(content.id, id)),
-    ])
+    await db.transaction(async (tx) => {
+      await tx.insert(contentHistory).values(historyEntry)
+      await tx.update(content).set(contentUpdates).where(eq(content.id, id))
+    })
 
     return this.findById(id)
   }
@@ -230,10 +230,10 @@ export class ContentRepository {
       createdAt: now,
     }
 
-    await db.batch([
-      db.insert(contentHistory).values(historyEntry),
-      db.update(content).set({ deletedAt: now, updatedAt: now }).where(eq(content.id, id)),
-    ])
+    await db.transaction(async (tx) => {
+      await tx.insert(contentHistory).values(historyEntry)
+      await tx.update(content).set({ deletedAt: now, updatedAt: now }).where(eq(content.id, id))
+    })
 
     return true
   }
@@ -292,17 +292,17 @@ export class ContentRepository {
       createdAt: now,
     }
 
-    await db.batch([
-      db.insert(contentHistory).values(archiveEntry),
-      db
+    await db.transaction(async (tx) => {
+      await tx.insert(contentHistory).values(archiveEntry)
+      await tx
         .update(content)
         .set({
           data: historyEntry.data,
           version: newVersion,
           updatedAt: now,
         })
-        .where(eq(content.id, id)),
-    ])
+        .where(eq(content.id, id))
+    })
 
     return this.findById(id)
   }
