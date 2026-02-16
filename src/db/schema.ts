@@ -64,7 +64,7 @@ export const contentHistory = sqliteTable(
       .$defaultFn(() => new Date().toISOString()),
   },
   (table) => [
-    uniqueIndex('content_history_version_idx').on(table.contentId, table.version),
+    index('content_history_version_idx').on(table.contentId, table.version),
     index('content_history_content_id_idx').on(table.contentId),
     index('content_history_change_type_idx').on(table.changeType),
   ]
