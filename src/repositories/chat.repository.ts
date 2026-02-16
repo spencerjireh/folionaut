@@ -96,17 +96,17 @@ export class ChatRepository {
       createdAt: now,
     }
 
-    // Insert message and increment count atomically using batch
-    await db.batch([
-      db.insert(chatMessages).values(newMessage),
-      db
+    // Insert message and increment count atomically
+    await db.transaction(async (tx) => {
+      await tx.insert(chatMessages).values(newMessage)
+      await tx
         .update(chatSessions)
         .set({
           messageCount: sql`${chatSessions.messageCount} + 1`,
           lastActiveAt: now,
         })
-        .where(eq(chatSessions.id, sessionId)),
-    ])
+        .where(eq(chatSessions.id, sessionId))
+    })
 
     return newMessage
   }

@@ -1,3 +1,4 @@
+/* eslint-disable no-console -- MCP uses stdio for protocol messages; console.error (stderr) is the only safe output channel */
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js'
 import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js'
 import { sql } from 'drizzle-orm'

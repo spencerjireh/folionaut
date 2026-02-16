@@ -4,6 +4,10 @@ import { getRequestContext } from './request-context.middleware'
 import { logger } from '@/lib/logger'
 import { env } from '@/config/env'
 
+function hasStatusCode(err: unknown): err is Error & { status: number } {
+  return err instanceof Error && 'status' in err && typeof err.status === 'number'
+}
+
 interface ErrorResponse {
   error: {
     code: string
@@ -52,8 +56,8 @@ export function errorHandlerMiddleware(
   }
 
   // Body-parser errors (malformed JSON, payload too large, etc.)
-  if ('status' in err && typeof (err as any).status === 'number') {
-    const status = (err as any).status as number
+  if (hasStatusCode(err)) {
+    const status = err.status
     const code = status === 413 ? 'PAYLOAD_TOO_LARGE' : 'BAD_REQUEST'
     const message = status === 413 ? 'Request body too large' : 'Malformed request body'
 
