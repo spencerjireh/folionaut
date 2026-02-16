@@ -1,3 +1,4 @@
+/* eslint-disable no-console -- CLI seed script; stdout output is intentional */
 /**
  * Seed data module.
  * Provides profile data, content derivation, and ground truths.
