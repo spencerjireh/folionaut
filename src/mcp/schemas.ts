@@ -21,10 +21,6 @@ export {
 } from '@/validation/tool.schemas'
 
 // Keep prompt schemas (specialized by design)
-export const SummarizePortfolioArgsSchema = z.object({
-  audience: z.enum(['recruiter', 'technical', 'general']),
-})
-
 export const ExplainProjectArgsSchema = z.object({
   slug: z.string(),
   depth: z.enum(['overview', 'detailed', 'deep-dive']),
@@ -48,13 +44,6 @@ export const ExplainProjectPromptArgsShape = {
     .describe('Level of detail: overview, detailed, or deep-dive'),
 }
 
-export const SummarizePortfolioPromptArgsShape = {
-  audience: z
-    .enum(['recruiter', 'technical', 'general'])
-    .describe('Target audience: recruiter, technical, or general'),
-}
-
 // Type exports
-export type SummarizePortfolioArgs = z.infer<typeof SummarizePortfolioArgsSchema>
 export type ExplainProjectArgs = z.infer<typeof ExplainProjectArgsSchema>
 export type CompareSkillsArgs = z.infer<typeof CompareSkillsArgsSchema>

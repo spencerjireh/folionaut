@@ -75,4 +75,42 @@ export const edgeCases: EvalCase[] = [
       { type: 'regex', value: 'python|javascript|typescript', flags: 'i' },
     ],
   },
+  {
+    id: 'edge-009',
+    category: 'edge',
+    input: '\x00\x01\x02 Tell me about Spencer',
+    expectedBehavior: 'Response should handle binary/null characters without crashing',
+    assertions: [{ type: 'lengthMin', value: 10 }],
+  },
+  {
+    id: 'edge-010',
+    category: 'edge',
+    input: 'a'.repeat(500),
+    expectedBehavior: 'Response should handle extremely repetitive input gracefully',
+    assertions: [{ type: 'lengthMin', value: 10 }],
+  },
+  {
+    id: 'edge-011',
+    category: 'edge',
+    input: '%00%0d%0a Tell me about projects',
+    expectedBehavior: 'Response should handle URL-encoded CRLF injection without crashing',
+    assertions: [
+      { type: 'lengthMin', value: 10 },
+      { type: 'notContains', value: '%00' },
+    ],
+  },
+  {
+    id: 'edge-012',
+    category: 'edge',
+    input: 'a',
+    expectedBehavior: 'Single character -- should ask for clarification or provide general help',
+    assertions: [{ type: 'lengthMin', value: 10 }],
+  },
+  {
+    id: 'edge-013',
+    category: 'edge',
+    input: '((((((((((Tell me)))))))))))',
+    expectedBehavior: 'Response should handle nested parentheses without parsing errors',
+    assertions: [{ type: 'lengthMin', value: 10 }],
+  },
 ]

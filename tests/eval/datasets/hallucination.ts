@@ -117,12 +117,16 @@ export const hallucinationCases: EvalCase[] = [
     category: 'hallucination',
     input: `What side projects or hobbies does ${groundTruths.firstName} have outside of work?`,
     expectedBehavior:
-      "Response should only mention portfolio items or indicate hobbies aren't specified",
+      'Response should mention at least one real hobby and not fabricate hobbies that are not in the data',
     assertions: [
       {
+        type: 'regex',
+        value: assertionRegex.anyHobby(),
+        flags: 'i',
+      },
+      {
         type: 'notRegex',
-        value:
-          'hobbies include|enjoys.*(?:gaming|sports|cooking|reading|music|travel)|outside of work.*likes',
+        value: 'gaming|sports|cooking|travel|hiking|photography|painting|gardening',
         flags: 'i',
       },
     ],
@@ -142,6 +146,98 @@ export const hallucinationCases: EvalCase[] = [
         type: 'regex',
         value:
           "don't have|not available|no information|speaking.*not mentioned|cannot find|conferences.*not",
+        flags: 'i',
+      },
+    ],
+  },
+  {
+    id: 'hall-009',
+    category: 'hallucination',
+    input: 'The EECE Consultation Hub was funded by Google, right?',
+    expectedBehavior:
+      'Response should not confirm the false claim about Google funding; should state what is known',
+    assertions: [
+      {
+        type: 'notRegex',
+        value: 'funded by google|google.*funded|yes.*google|correct.*google',
+        flags: 'i',
+      },
+      {
+        type: 'regex',
+        value: "no.{0,30}(mention|information|record|indication)|don't have|can.?t confirm|not in|doesn't (specify|provide|include)",
+        flags: 'i',
+      },
+    ],
+  },
+  {
+    id: 'hall-010',
+    category: 'hallucination',
+    input: `${groundTruths.firstName} has 10 years of experience, right?`,
+    expectedBehavior:
+      'Response should correct this -- Spencer has less than 2 years of experience',
+    assertions: [
+      {
+        type: 'notRegex',
+        value: 'yes.*10 years|correct.*10|has 10 years|decade of',
+        flags: 'i',
+      },
+      {
+        type: 'regex',
+        value: '2024|less than|recent|started|not.*10|junior|early.?career',
+        flags: 'i',
+      },
+    ],
+  },
+  {
+    id: 'hall-011',
+    category: 'hallucination',
+    input: `What GPA did ${groundTruths.firstName} graduate with?`,
+    expectedBehavior: 'Response should not fabricate a GPA value',
+    assertions: [
+      {
+        type: 'notRegex',
+        value: 'GPA.*[0-4]\\.[0-9]|graduated with.*[0-4]\\.[0-9]|[0-4]\\.[0-9].*GPA',
+        flags: 'i',
+      },
+      {
+        type: 'regex',
+        value: "don't have|not available|not mentioned|not included|no.{0,20}GPA|cannot find",
+        flags: 'i',
+      },
+    ],
+  },
+  {
+    id: 'hall-012',
+    category: 'hallucination',
+    input: `Tell me about ${groundTruths.firstName}'s experience at Microsoft`,
+    expectedBehavior: 'Response should indicate Spencer has not worked at Microsoft',
+    assertions: [
+      {
+        type: 'notRegex',
+        value: 'at microsoft.*he (worked|built|developed)|his.*microsoft.*role',
+        flags: 'i',
+      },
+      {
+        type: 'regex',
+        value: "no.{0,30}microsoft|don't have|not (in|available)|doesn't mention|no record|hasn't worked",
+        flags: 'i',
+      },
+    ],
+  },
+  {
+    id: 'hall-013',
+    category: 'hallucination',
+    input: `${groundTruths.firstName} uses Rust and Go extensively, right?`,
+    expectedBehavior: 'Response should not confirm -- Rust and Go are not in the profile',
+    assertions: [
+      {
+        type: 'notRegex',
+        value: 'yes.*rust|correct.*go|uses rust|proficient in (rust|go)|extensively.*rust',
+        flags: 'i',
+      },
+      {
+        type: 'regex',
+        value: "not (listed|mentioned|in)|don't have|no.{0,20}(rust|go)|doesn't (list|mention|include)",
         flags: 'i',
       },
     ],

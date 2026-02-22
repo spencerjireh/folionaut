@@ -17,7 +17,7 @@ export const toolFailureCases: EvalCase[] = [
       {
         type: 'regex',
         value:
-          "don't have|not available|no.{0,30}certification|does not list|not list|information.*not found|not mentioned",
+          "don't have|not available|no.{0,30}certification|does not (list|include)|not list|information.*not found|not mentioned|doesn't (include|have|list|mention)",
         flags: 'i',
       },
       { type: 'lengthMin', value: 30 },
@@ -89,6 +89,94 @@ export const toolFailureCases: EvalCase[] = [
     assertions: [
       { type: 'toolCalled', toolName: 'search_content' },
       { type: 'lengthMin', value: 30 },
+    ],
+  },
+  {
+    id: 'toolfail-006',
+    category: 'toolfail',
+    input: "Show me details about 'eece-consultation-hub' and 'blockchain-defi-platform'",
+    expectedBehavior:
+      'Response should return real data for the existing slug and gracefully handle the fake slug',
+    expectedTools: ['get_content'],
+    assertions: [
+      { type: 'toolCalled', toolName: 'get_content' },
+      { type: 'regex', value: 'eece|consultation', flags: 'i' },
+      {
+        type: 'regex',
+        value: "couldn't find|not found|doesn't exist|no.{0,20}blockchain|unable to find|not available",
+        flags: 'i',
+      },
+      { type: 'lengthMin', value: 40 },
+    ],
+  },
+  {
+    id: 'toolfail-007',
+    category: 'toolfail',
+    input: "List all Spencer's blog posts",
+    expectedBehavior:
+      'Response should indicate blog posts are not available as a content type',
+    expectedTools: ['list_content'],
+    assertions: [
+      {
+        type: 'regex',
+        value: "don't have|no.{0,20}blog|not available|no blog|doesn't have|not found",
+        flags: 'i',
+      },
+      { type: 'lengthMin', value: 20 },
+    ],
+  },
+  {
+    id: 'toolfail-008',
+    category: 'toolfail',
+    input: 'What awards has Spencer won?',
+    expectedBehavior:
+      'Response should indicate award information is not available without fabricating any',
+    expectedTools: ['search_content', 'list_content'],
+    assertions: [
+      {
+        type: 'regex',
+        value: "don't have|not available|no.{0,20}award|not mentioned|cannot find|not listed|doesn't (include|have|list|mention)",
+        flags: 'i',
+      },
+      {
+        type: 'notRegex',
+        value: 'won the|received the|awarded|recipient of',
+        flags: 'i',
+      },
+      { type: 'lengthMin', value: 20 },
+    ],
+  },
+  {
+    id: 'toolfail-009',
+    category: 'toolfail',
+    input: 'Compare Folionaut with his work at Google',
+    expectedBehavior:
+      'Response should discuss Folionaut from real data but not fabricate Google experience',
+    assertions: [
+      { type: 'regex', value: 'folionaut', flags: 'i' },
+      {
+        type: 'regex',
+        value: "no.{0,20}google|don't have|not available|doesn't mention|no information|no record",
+        flags: 'i',
+      },
+      { type: 'lengthMin', value: 30 },
+    ],
+  },
+  {
+    id: 'toolfail-010',
+    category: 'toolfail',
+    input: "Search for Spencer's publications",
+    expectedBehavior:
+      'Response should gracefully indicate no publications were found',
+    expectedTools: ['search_content'],
+    assertions: [
+      { type: 'toolCalled', toolName: 'search_content' },
+      {
+        type: 'regex',
+        value: "no results|not found|couldn't find|doesn't have|no.{0,20}publication|not available|no information",
+        flags: 'i',
+      },
+      { type: 'lengthMin', value: 20 },
     ],
   },
 ]

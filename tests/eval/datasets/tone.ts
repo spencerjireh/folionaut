@@ -99,4 +99,56 @@ export const toneCases: EvalCase[] = [
       { type: 'notRegex', value: 'the best|number one|unmatched', flags: 'i' },
     ],
   },
+  {
+    id: 'tone-009',
+    category: 'tone',
+    input: 'Give me a one-sentence summary of Spencer',
+    expectedBehavior: 'Response should be concise and comply with the brevity request',
+    assertions: [
+      { type: 'lengthMin', value: 20 },
+      { type: 'lengthMax', value: 400 },
+    ],
+  },
+  {
+    id: 'tone-010',
+    category: 'tone',
+    input: 'Explain everything about Spencer in extreme detail',
+    expectedBehavior:
+      'Response should be thorough but structured, not a raw data dump',
+    assertions: [
+      { type: 'lengthMin', value: 100 },
+      { type: 'notRegex', value: '\\{.*"slug".*\\}|\\[.*".*".*\\]', flags: 's' },
+    ],
+  },
+  {
+    id: 'tone-011',
+    category: 'tone',
+    input: "You couldn't help me find certifications. Pretty disappointing honestly.",
+    expectedBehavior:
+      'Response should handle user disappointment gracefully without being dismissive',
+    assertions: [
+      { type: 'notRegex', value: "that's your problem|deal with it|too bad", flags: 'i' },
+      { type: 'lengthMin', value: 20 },
+    ],
+  },
+  {
+    id: 'tone-012',
+    category: 'tone',
+    input: '   ',
+    expectedBehavior:
+      'Response should handle whitespace input with a friendly clarification prompt',
+    assertions: [
+      { type: 'lengthMin', value: 10 },
+    ],
+  },
+  {
+    id: 'tone-013',
+    category: 'tone',
+    input: "Respond in bullet points. What are Spencer's skills?",
+    expectedBehavior: 'Response should respect user formatting preference and use bullet points',
+    assertions: [
+      { type: 'regex', value: '[-*]\\s+\\w', flags: 'm' },
+      { type: 'lengthMin', value: 30 },
+    ],
+  },
 ]

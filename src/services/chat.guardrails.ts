@@ -16,42 +16,11 @@ const PII_PATTERNS = {
   ssn: /\b\d{3}-\d{2}-\d{4}\b/g,
 }
 
-// Hobbies/personal life keywords
-const HOBBIES_KEYWORDS = [
-  'hobbies',
-  'hobby',
-  'personal life',
-  'free time',
-  'spare time',
-  'leisure',
-  'outside of work',
-  'when not working',
-  'interests outside',
-  'favorite food',
-  'favorite movie',
-  'favorite music',
-  'family',
-  'married',
-  'kids',
-  'children',
-  'pets',
-  'dating',
-  'relationship',
-]
-
 /**
  * Check if input is empty or whitespace-only.
  */
 export function isEmptyOrWhitespace(input: string): boolean {
   return !input || input.trim().length === 0
-}
-
-/**
- * Detect if the question is about hobbies or personal life.
- */
-export function detectHobbiesQuestion(input: string): boolean {
-  const lowerInput = input.toLowerCase()
-  return HOBBIES_KEYWORDS.some((keyword) => lowerInput.includes(keyword))
 }
 
 /**
@@ -65,15 +34,6 @@ export function validateInput(input: string): GuardrailResult {
       passed: false,
       reason:
         "I didn't receive a clear message. Could you please ask a question about Spencer's portfolio, such as his projects, skills, or experience?",
-    }
-  }
-
-  // Check for hobbies/personal life questions
-  if (detectHobbiesQuestion(input)) {
-    return {
-      passed: false,
-      reason:
-        "I only have information about Spencer's professional portfolio, including his projects, skills, work experience, and education. I don't have details about personal hobbies or interests. Is there something about his professional background I can help you with?",
     }
   }
 

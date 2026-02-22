@@ -37,6 +37,7 @@ const { mockChatRepository, mockEventEmitter, mockRateLimiter, mockLLMProvider, 
 
 vi.mock('@/repositories', () => ({
   chatRepository: mockChatRepository,
+  contentRepository: { getBundle: vi.fn().mockResolvedValue({}) },
 }))
 
 vi.mock('@/events', () => ({

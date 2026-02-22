@@ -89,12 +89,10 @@ describe('MCP Prompts (E2E)', () => {
   })
 
   describe('summarize_portfolio', () => {
-    const audiences = ['recruiter', 'technical', 'general'] as const
-
-    it.each(audiences)('with audience=%s returns messages with portfolio data', async (audience) => {
+    it('returns messages with portfolio data', async () => {
       const result = await ctx.client.getPrompt({
         name: 'summarize_portfolio',
-        arguments: { audience },
+        arguments: {},
       })
 
       expect(result.messages).toBeDefined()
@@ -106,7 +104,8 @@ describe('MCP Prompts (E2E)', () => {
           ? result.messages[0].content
           : (result.messages[0].content as { text: string }).text
 
-      expect(text).toContain(audience)
+      expect(text).toContain('portfolio')
+      expect(text).toContain('TypeScript')
     })
   })
 

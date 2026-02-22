@@ -166,6 +166,94 @@ describe('OpenAI Adapter', () => {
     })
   })
 
+  describe('metadata stripping', () => {
+    const fullContentItem = {
+      id: 'cnt_abc',
+      slug: 'my-project',
+      type: 'project',
+      data: { title: 'My Project', description: 'A cool project' },
+      status: 'published',
+      version: 3,
+      sortOrder: 1,
+      createdAt: '2024-01-01T00:00:00Z',
+      updatedAt: '2024-06-01T00:00:00Z',
+    }
+
+    it('should strip metadata from list_content items', async () => {
+      mockListContent.mockResolvedValue({
+        success: true,
+        data: { items: [fullContentItem] },
+      })
+
+      const result = await executeToolCall({
+        id: 'call_1',
+        type: 'function',
+        function: { name: 'list_content', arguments: JSON.stringify({ type: 'project' }) },
+      })
+
+      const parsed = JSON.parse(result)
+      const item = parsed.data.items[0]
+      expect(item).not.toHaveProperty('id')
+      expect(item).not.toHaveProperty('version')
+      expect(item).not.toHaveProperty('sortOrder')
+      expect(item).not.toHaveProperty('createdAt')
+      expect(item).not.toHaveProperty('updatedAt')
+      expect(item).toHaveProperty('slug', 'my-project')
+      expect(item).toHaveProperty('type', 'project')
+      expect(item).toHaveProperty('data')
+      expect(item).toHaveProperty('status', 'published')
+    })
+
+    it('should strip metadata from get_content item', async () => {
+      mockGetContent.mockResolvedValue({
+        success: true,
+        data: { item: fullContentItem },
+      })
+
+      const result = await executeToolCall({
+        id: 'call_1',
+        type: 'function',
+        function: { name: 'get_content', arguments: JSON.stringify({ type: 'project', slug: 'my-project' }) },
+      })
+
+      const parsed = JSON.parse(result)
+      const item = parsed.data.item
+      expect(item).not.toHaveProperty('id')
+      expect(item).not.toHaveProperty('version')
+      expect(item).toHaveProperty('slug', 'my-project')
+      expect(item).toHaveProperty('data')
+    })
+
+    it('should pass through list_types result unchanged', async () => {
+      const typesResult = {
+        success: true,
+        data: { types: [{ type: 'project', count: 3 }] },
+      }
+      mockListTypes.mockResolvedValue(typesResult)
+
+      const result = await executeToolCall({
+        id: 'call_1',
+        type: 'function',
+        function: { name: 'list_types', arguments: '{}' },
+      })
+
+      const parsed = JSON.parse(result)
+      expect(parsed).toEqual(typesResult)
+    })
+
+    it('should pass through error results unchanged', async () => {
+      const result = await executeToolCall({
+        id: 'call_1',
+        type: 'function',
+        function: { name: 'unknown_tool', arguments: '{}' },
+      })
+
+      const parsed = JSON.parse(result)
+      expect(parsed.success).toBe(false)
+      expect(parsed.error).toBe('Unknown tool: unknown_tool')
+    })
+  })
+
   describe('error handling', () => {
     it('should return error result when Zod validation fails', async () => {
       const { ZodError } = await import('zod')

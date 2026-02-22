@@ -77,6 +77,8 @@ export class EvalReporter {
       'tone',
       'refusal',
       'edge',
+      'hallucination',
+      'toolfail',
     ]
 
     for (const category of categories) {

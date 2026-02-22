@@ -46,6 +46,7 @@ export interface ProfileData {
     endDate: string | null
     location?: string
   }>
+  hobbies: Array<{ name: string; description: string }>
 }
 
 /**
@@ -150,5 +151,11 @@ export const PROFILE_DATA: ProfileData = {
       endDate: '2025-05',
       location: 'Manila, Philippines',
     },
+  ],
+  hobbies: [
+    { name: 'Reading', description: 'Avid reader across fiction, non-fiction, and manga' },
+    { name: 'Chess', description: 'Plays casually online' },
+    { name: 'TV and animated series', description: 'Watches a broad mix of live-action and animation' },
+    { name: 'Music production', description: 'Produces beats/hip-hop and lo-fi/chill using FL Studio' },
   ],
 }

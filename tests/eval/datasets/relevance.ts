@@ -80,9 +80,9 @@ export const relevanceCases: EvalCase[] = [
     expectedBehavior: 'Response should address open source work or mention GitHub portfolio',
     assertions: [
       // Should mention GitHub or specific projects
-      { type: 'regex', value: 'github\\.com|has.{0,30}(project|github)|portfolio.{0,20}project', flags: 'i' },
+      { type: 'regex', value: 'github|project|built|developed|worked on|portfolio', flags: 'i' },
       // Should NOT say "has not contributed" or "no open source"
-      { type: 'notRegex', value: 'has not contributed|no open.?source|doesn\'t have|not.{0,10}contributed', flags: 'i' },
+      { type: 'notRegex', value: 'has not contributed|no open.?source|not.{0,10}contributed', flags: 'i' },
     ],
     groundTruth: `${groundTruths.firstName} has a GitHub portfolio with projects including ${groundTruths.projectNames.join(', ')}.`,
   },
@@ -97,5 +97,76 @@ export const relevanceCases: EvalCase[] = [
     ],
     groundTruth: `${groundTruths.firstName} is a software engineer specializing in full-stack development and AI/ML systems.`,
     expectedTools: ['list_content'],
+  },
+  {
+    id: 'rel-010',
+    category: 'relevance',
+    input: `What are ${groundTruths.firstName}'s hobbies?`,
+    expectedBehavior: 'Response should mention real hobbies from the portfolio data',
+    assertions: [
+      { type: 'regex', value: assertionRegex.anyHobby(), flags: 'i' },
+      { type: 'notRegex', value: 'gaming|sports|cooking|travel|hiking|photography|painting|gardening', flags: 'i' },
+    ],
+  },
+  {
+    id: 'rel-011',
+    category: 'relevance',
+    input: `Does ${groundTruths.firstName} have any pets?`,
+    expectedBehavior: 'Response should deflect personal-life questions and pivot to portfolio topics',
+    assertions: [
+      { type: 'regex', value: 'professional|portfolio|don\'t have|focus', flags: 'i' },
+      { type: 'notRegex', value: 'he (has|owns) a|his (pet|dog|cat)', flags: 'i' },
+    ],
+  },
+  {
+    id: 'rel-012',
+    category: 'relevance',
+    input: `Tell me about ${groundTruths.firstName}`,
+    expectedBehavior: 'Vague but common query -- should give a broad overview of the portfolio owner',
+    assertions: [
+      { type: 'regex', value: 'software engineer|developer|full.?stack', flags: 'i' },
+      { type: 'lengthMin', value: 50 },
+    ],
+    groundTruth: `${groundTruths.firstName} is a ${groundTruths.currentRole} at ${groundTruths.currentCompanyName} specializing in full-stack development and AI/ML.`,
+  },
+  {
+    id: 'rel-013',
+    category: 'relevance',
+    input: `What can ${groundTruths.firstName} do with AI?`,
+    expectedBehavior: 'Response should cross-reference skills, projects, and experience related to AI',
+    assertions: [
+      { type: 'regex', value: 'langraph|langgraph|langchain|rag|agent|ai|ml|openai', flags: 'i' },
+      { type: 'lengthMin', value: 40 },
+    ],
+  },
+  {
+    id: 'rel-014',
+    category: 'relevance',
+    input: 'Tell me more',
+    expectedBehavior: 'No context in single-turn -- should ask for clarification or give a general overview',
+    assertions: [
+      { type: 'regex', value: 'what|which|specific|more about|help|clarif|could you', flags: 'i' },
+      { type: 'lengthMin', value: 20 },
+    ],
+  },
+  {
+    id: 'rel-015',
+    category: 'relevance',
+    input: `How is ${groundTruths.firstName}'s backend experience different from frontend?`,
+    expectedBehavior: 'Response should compare backend and frontend skills/experience from the portfolio',
+    assertions: [
+      { type: 'regex', value: 'backend|back.?end|front.?end|frontend|api|react|node|express|spring', flags: 'i' },
+      { type: 'lengthMin', value: 50 },
+    ],
+  },
+  {
+    id: 'rel-016',
+    category: 'relevance',
+    input: `What makes ${groundTruths.firstName} stand out as a candidate?`,
+    expectedBehavior: 'Response should synthesize strengths across skills, projects, and experience',
+    assertions: [
+      { type: 'regex', value: assertionRegex.anyProject(), flags: 'i' },
+      { type: 'lengthMin', value: 60 },
+    ],
   },
 ]

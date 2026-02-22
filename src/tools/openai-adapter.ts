@@ -7,8 +7,36 @@ import {
   ListTypesInputSchema,
 } from '@/validation/tool.schemas'
 import { listContent, getContent, searchContent, listTypes } from './core'
-import type { ToolResult } from './types'
+import type { ToolResult, ContentItem } from './types'
 import type { FunctionDefinition, ToolCall } from '@/llm/types'
+
+const METADATA_KEYS = new Set<string>(['id', 'version', 'sortOrder', 'createdAt', 'updatedAt'])
+
+function stripContentItemMetadata(item: ContentItem) {
+  return Object.fromEntries(Object.entries(item).filter(([k]) => !METADATA_KEYS.has(k)))
+}
+
+function filterToolResult(result: ToolResult): ToolResult {
+  if (!result.success || !result.data) return result
+
+  const data = result.data as Record<string, unknown>
+
+  if (Array.isArray(data.items)) {
+    return {
+      ...result,
+      data: { ...data, items: (data.items as ContentItem[]).map(stripContentItemMetadata) },
+    }
+  }
+
+  if (data.item && typeof data.item === 'object') {
+    return {
+      ...result,
+      data: { ...data, item: stripContentItemMetadata(data.item as ContentItem) },
+    }
+  }
+
+  return result
+}
 
 /**
  * Tool definitions for OpenAI chat completions API.
@@ -18,7 +46,7 @@ export const chatToolDefinitions: FunctionDefinition[] = [
   {
     name: 'list_content',
     description:
-      'List portfolio content items by type. Common types: project, experience, education, skill, about (biographical info, who Spencer is), contact. Use this for broad questions or identity questions like "Who is Spencer?" with type "about".',
+      'List portfolio content items by type. Available types: project, experience, education, skill, about (biographical info, who Spencer is), contact, hobbies. Always call this before saying information is unavailable. Use this for broad questions, identity questions like "Who is Spencer?" with type "about", or education questions with type "education".',
     parameters: zodToJsonSchema(ListContentInputSchema, { $refStrategy: 'none' }),
   },
   {
@@ -30,7 +58,7 @@ export const chatToolDefinitions: FunctionDefinition[] = [
   {
     name: 'search_content',
     description:
-      'Search portfolio content by query string. Searches across title, description, name, company, role, tags, and other fields. Use this when looking for content matching specific keywords.',
+      'Search portfolio content by query string. Searches across title, description, name, company, role, tags, and other fields. Use this when looking for content matching specific keywords. If the search returns no results, tell the visitor explicitly rather than guessing.',
     parameters: zodToJsonSchema(SearchContentInputSchema, { $refStrategy: 'none' }),
   },
   {
@@ -85,5 +113,5 @@ export async function executeToolCall(toolCall: ToolCall): Promise<string> {
     }
   }
 
-  return JSON.stringify(result)
+  return JSON.stringify(filterToolResult(result))
 }

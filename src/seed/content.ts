@@ -82,6 +82,20 @@ export function deriveSeedContent(): CreateContentDto[] {
     sortOrder: 0,
   })
 
+  // Hobbies (items-array pattern)
+  content.push({
+    type: 'hobbies',
+    slug: 'hobbies',
+    data: {
+      items: PROFILE_DATA.hobbies.map((h) => ({
+        name: h.name,
+        description: h.description,
+      })),
+    },
+    status: 'published',
+    sortOrder: 0,
+  })
+
   // Skills (SkillsListDataSchema)
   content.push({
     type: 'skill',

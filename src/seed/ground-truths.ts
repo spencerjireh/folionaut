@@ -117,6 +117,100 @@ export const groundTruths = {
   get totalExperiences(): number {
     return PROFILE_DATA.experience.length
   },
+
+  /**
+   * Project descriptions keyed by slug.
+   */
+  get projectDescriptions(): Record<string, string> {
+    return Object.fromEntries(PROFILE_DATA.projects.map((p) => [p.slug, p.description]))
+  },
+
+  /**
+   * Project tags keyed by slug.
+   */
+  get projectTags(): Record<string, string[]> {
+    return Object.fromEntries(PROFILE_DATA.projects.map((p) => [p.slug, p.tags]))
+  },
+
+  /**
+   * Skills from the Java Intern experience entry.
+   */
+  get internSkills(): string[] {
+    const intern = PROFILE_DATA.experience.find((e) => e.role.toLowerCase().includes('intern'))
+    return intern ? [...intern.skills] : []
+  },
+
+  /**
+   * Skills from the current (first) experience entry.
+   */
+  get currentRoleSkills(): string[] {
+    return [...PROFILE_DATA.experience[0].skills]
+  },
+
+  /**
+   * Social links (LinkedIn and GitHub).
+   */
+  get socialLinks(): { linkedin: string; github: string } {
+    return { ...PROFILE_DATA.social }
+  },
+
+  /**
+   * Education field of study.
+   */
+  get educationField(): string {
+    return PROFILE_DATA.education[0].field
+  },
+
+  /**
+   * Education degree type (e.g. "BS").
+   */
+  get educationDegreeType(): string {
+    return PROFILE_DATA.education[0].degree
+  },
+
+  /**
+   * Education location.
+   */
+  get educationLocation(): string {
+    return PROFILE_DATA.education[0].location ?? ''
+  },
+
+  /**
+   * Portfolio website URL.
+   */
+  get website(): string {
+    return PROFILE_DATA.website
+  },
+
+  /**
+   * Description text from the current role.
+   */
+  get currentRoleDescription(): string {
+    return PROFILE_DATA.experience[0].description
+  },
+
+  /**
+   * Description text from the intern role.
+   */
+  get internRoleDescription(): string {
+    const intern = PROFILE_DATA.experience.find((e) => e.role.toLowerCase().includes('intern'))
+    return intern?.description ?? ''
+  },
+
+  /**
+   * Flattened unique set of all project tags.
+   */
+  get allProjectTags(): string[] {
+    const tags = new Set(PROFILE_DATA.projects.flatMap((p) => p.tags))
+    return [...tags]
+  },
+
+  /**
+   * List of hobby names.
+   */
+  get hobbyNames(): string[] {
+    return PROFILE_DATA.hobbies.map((h) => h.name)
+  },
 }
 
 /**
@@ -180,6 +274,49 @@ export const assertionRegex = {
   anyProject(): string {
     return PROFILE_DATA.projects
       .map((p) => p.title.toLowerCase().replace(/['']/g, "'?").replace(/\s+/g, '\\s*'))
+      .join('|')
+  },
+
+  /**
+   * Matches any tag from any project.
+   */
+  anyProjectTag(): string {
+    const tags = new Set(PROFILE_DATA.projects.flatMap((p) => p.tags))
+    return [...tags].map((t) => t.toLowerCase().replace(/[.+]/g, '\\$&')).join('|')
+  },
+
+  /**
+   * Matches any skill from the intern role.
+   */
+  internSkill(): string {
+    const intern = PROFILE_DATA.experience.find((e) => e.role.toLowerCase().includes('intern'))
+    return (intern?.skills ?? []).map((s) => s.toLowerCase().replace(/[.+]/g, '\\$&')).join('|')
+  },
+
+  /**
+   * Matches any skill from the current role.
+   */
+  currentRoleSkill(): string {
+    return PROFILE_DATA.experience[0].skills
+      .map((s) => s.toLowerCase().replace(/[.+]/g, '\\$&'))
+      .join('|')
+  },
+
+  /**
+   * Matches any hobby name from the profile.
+   */
+  anyHobby(): string {
+    return PROFILE_DATA.hobbies
+      .map((h) => h.name.toLowerCase().replace(/\s+/g, '\\s*'))
+      .join('|')
+  },
+
+  /**
+   * Matches LinkedIn or GitHub URL.
+   */
+  socialLink(): string {
+    return [PROFILE_DATA.social.linkedin, PROFILE_DATA.social.github]
+      .map((u) => u.replace(/[/.+?]/g, '\\$&'))
       .join('|')
   },
 }

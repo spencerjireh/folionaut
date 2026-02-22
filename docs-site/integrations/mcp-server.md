@@ -255,13 +255,7 @@ Pre-defined prompt templates for common use cases.
 
 ### `summarize_portfolio`
 
-Generate a summary of the entire portfolio suitable for a specific audience.
-
-```typescript
-interface SummarizePortfolioInput {
-  audience: 'recruiter' | 'technical' | 'general'
-}
-```
+Generate a summary of the entire portfolio covering professional background, key skills, notable projects, and career trajectory. Takes no arguments.
 
 ### `explain_project`
 

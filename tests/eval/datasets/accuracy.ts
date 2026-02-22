@@ -80,4 +80,59 @@ export const accuracyCases: EvalCase[] = [
     assertions: [{ type: 'regex', value: assertionRegex.educationInstitution(), flags: 'i' }],
     groundTruth: groundTruths.education,
   },
+  {
+    id: 'acc-009',
+    category: 'accuracy',
+    input: 'What is the EECE Consultation Hub about?',
+    expectedBehavior: 'Response should accurately describe the EECE Consultation Hub project',
+    assertions: [
+      { type: 'regex', value: 'consultation|scheduling|appointment|1000', flags: 'i' },
+      { type: 'notRegex', value: "don't have|no information|not available", flags: 'i' },
+    ],
+    groundTruth: PROFILE_DATA.projects.find((p) => p.slug === 'eece-consultation-hub')?.description ?? '',
+  },
+  {
+    id: 'acc-010',
+    category: 'accuracy',
+    input: `What tech does ${groundTruths.firstName} use in his current role?`,
+    expectedBehavior: 'Response should list skills from the current role entry',
+    assertions: [
+      { type: 'regex', value: assertionRegex.currentRoleSkill(), flags: 'i' },
+      { type: 'notRegex', value: "don't have|no information|not available", flags: 'i' },
+    ],
+    groundTruth: `In his current role, ${groundTruths.firstName} uses ${groundTruths.currentRoleSkills.join(', ')}.`,
+  },
+  {
+    id: 'acc-011',
+    category: 'accuracy',
+    input: `Where can I find ${groundTruths.firstName} online?`,
+    expectedBehavior: 'Response should include LinkedIn and/or GitHub links',
+    assertions: [
+      { type: 'regex', value: 'linkedin|github', flags: 'i' },
+      { type: 'notRegex', value: "don't have|no information|not available", flags: 'i' },
+    ],
+    groundTruth: `${groundTruths.firstName} can be found on LinkedIn (${groundTruths.socialLinks.linkedin}) and GitHub (${groundTruths.socialLinks.github}).`,
+  },
+  {
+    id: 'acc-012',
+    category: 'accuracy',
+    input: `What is ${groundTruths.firstName}'s education timeline?`,
+    expectedBehavior: 'Response should mention education start and end dates (2021, 2025)',
+    assertions: [
+      { type: 'regex', value: '2021|2025', flags: 'i' },
+      { type: 'regex', value: assertionRegex.educationInstitution(), flags: 'i' },
+    ],
+    groundTruth: `${groundTruths.firstName} studied at ${groundTruths.educationInstitution} from August 2021 to May 2025.`,
+  },
+  {
+    id: 'acc-013',
+    category: 'accuracy',
+    input: "Describe the Jireh's Agent project",
+    expectedBehavior: 'Response should accurately describe the project content',
+    assertions: [
+      { type: 'regex', value: 'arxiv|rag|langraph|langgraph|agent|paper', flags: 'i' },
+      { type: 'notRegex', value: "don't have|no information|not available", flags: 'i' },
+    ],
+    groundTruth: PROFILE_DATA.projects.find((p) => p.slug === 'jirehs-agent')?.content ?? '',
+  },
 ]
