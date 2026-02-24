@@ -29,7 +29,7 @@ export const relevanceCases: EvalCase[] = [
     input: `What does ${groundTruths.firstName} specialize in?`,
     expectedBehavior: 'Response should mention technical skills and specializations',
     assertions: [{ type: 'regex', value: 'typescript|python|ai|ml|full.?stack', flags: 'i' }],
-    groundTruth: `${groundTruths.firstName} specializes in full-stack development and AI/ML systems.`,
+    groundTruth: `${groundTruths.firstName} specializes in full-stack development and applied AI.`,
   },
   {
     id: 'rel-004',
@@ -56,14 +56,14 @@ export const relevanceCases: EvalCase[] = [
     id: 'rel-006',
     category: 'relevance',
     input: `Does ${groundTruths.firstName} have cloud experience?`,
-    expectedBehavior: 'Response should mention cloud platforms and experience',
+    expectedBehavior: 'Response should mention AWS and cloud experience',
     assertions: [
       // Should mention AWS or specific cloud tech
-      { type: 'regex', value: 'aws.{0,10}cdk|aws cdk|has.{0,30}cloud|experience.{0,20}(aws|cloud)', flags: 'i' },
+      { type: 'regex', value: 'aws|cloud|ec2|s3|lambda|rds', flags: 'i' },
       // Should NOT say "no cloud" or "doesn't have cloud"
       { type: 'notRegex', value: 'no.{0,20}cloud|does not have|doesn\'t have|not.{0,10}listed', flags: 'i' },
     ],
-    groundTruth: `${groundTruths.firstName} has experience with AWS CDK and cloud infrastructure.`,
+    groundTruth: `${groundTruths.firstName} has experience with AWS including EC2, S3, Lambda, and RDS for production deployments and CI/CD pipelines.`,
   },
   {
     id: 'rel-007',
@@ -90,12 +90,12 @@ export const relevanceCases: EvalCase[] = [
     id: 'rel-009',
     category: 'relevance',
     input: `Who is ${groundTruths.firstName}?`,
-    expectedBehavior: 'Response should describe Spencer using data from the about content type',
+    expectedBehavior: 'Response should describe Spencer using data from the bio content type',
     assertions: [
       { type: 'regex', value: 'software engineer|full.?stack|developer', flags: 'i' },
       { type: 'notRegex', value: "don't have|no information|no.{0,20}details|not available", flags: 'i' },
     ],
-    groundTruth: `${groundTruths.firstName} is a software engineer specializing in full-stack development and AI/ML systems.`,
+    groundTruth: `${groundTruths.firstName} is a backend-leaning software engineer building at the intersection of full-stack development and applied AI.`,
     expectedTools: ['list_content'],
   },
   {
@@ -127,7 +127,7 @@ export const relevanceCases: EvalCase[] = [
       { type: 'regex', value: 'software engineer|developer|full.?stack', flags: 'i' },
       { type: 'lengthMin', value: 50 },
     ],
-    groundTruth: `${groundTruths.firstName} is a ${groundTruths.currentRole} at ${groundTruths.currentCompanyName} specializing in full-stack development and AI/ML.`,
+    groundTruth: `${groundTruths.firstName} is a ${groundTruths.currentRole} at ${groundTruths.currentCompanyName} specializing in full-stack development and applied AI.`,
   },
   {
     id: 'rel-013',

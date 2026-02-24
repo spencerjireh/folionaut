@@ -1,6 +1,6 @@
 /**
  * Derives seed content from profile data.
- * Transforms PROFILE_DATA into CreateContentDto[] for database seeding.
+ * Produces separate rows per entity, matching production database shape.
  */
 
 import { PROFILE_DATA } from './data'
@@ -13,132 +13,135 @@ import type { CreateContentDto } from '@/db/models'
 export function deriveSeedContent(): CreateContentDto[] {
   const content: CreateContentDto[] = []
 
-  // About page (PageDataSchema)
+  // Bio
   content.push({
-    type: 'about',
-    slug: 'about',
+    type: 'bio',
+    slug: 'main',
     data: {
-      title: `About ${PROFILE_DATA.name}`,
-      content: `${PROFILE_DATA.name} is a software engineer specializing in full-stack development and AI/ML systems. Currently working at ${PROFILE_DATA.experience[0].company} as a ${PROFILE_DATA.experience[0].role}, focusing on ${PROFILE_DATA.experience[0].description.split('.')[0].toLowerCase()}.`,
+      name: PROFILE_DATA.bio.firstName,
+      lastName: PROFILE_DATA.bio.lastName,
+      title: PROFILE_DATA.bio.title,
+      blurb: PROFILE_DATA.bio.blurb,
     },
     status: 'published',
     sortOrder: 0,
   })
 
-  // Contact page (SiteConfigDataSchema)
+  // Contact
   content.push({
     type: 'contact',
-    slug: 'contact',
+    slug: 'main',
     data: {
-      name: PROFILE_DATA.name,
-      title: 'Software Engineer',
-      email: PROFILE_DATA.email,
-      social: {
-        linkedin: PROFILE_DATA.social.linkedin,
-        github: PROFILE_DATA.social.github,
-        website: PROFILE_DATA.website,
-      },
-      chatEnabled: true,
+      title: PROFILE_DATA.contact.title,
+      subtitle: PROFILE_DATA.contact.subtitle,
+      email: PROFILE_DATA.contact.email,
+      github: PROFILE_DATA.contact.github,
+      linkedin: PROFILE_DATA.contact.linkedin,
+      footer: PROFILE_DATA.contact.footer,
     },
     status: 'published',
     sortOrder: 0,
   })
 
-  // Experience (ExperienceListDataSchema)
-  content.push({
-    type: 'experience',
-    slug: 'experience',
-    data: {
-      items: PROFILE_DATA.experience.map((exp) => ({
-        company: exp.company,
-        role: exp.role,
-        description: exp.description,
-        startDate: exp.startDate,
-        endDate: exp.endDate,
-        location: exp.location,
-        type: exp.type,
-        skills: exp.skills,
-      })),
-    },
-    status: 'published',
-    sortOrder: 0,
-  })
-
-  // Education (EducationListDataSchema)
+  // Education (single row)
   content.push({
     type: 'education',
-    slug: 'education',
+    slug: PROFILE_DATA.education.slug,
     data: {
-      items: PROFILE_DATA.education.map((edu) => ({
-        institution: edu.institution,
-        degree: edu.degree,
-        field: edu.field,
-        startDate: edu.startDate,
-        endDate: edu.endDate,
-        location: edu.location,
-      })),
+      degree: PROFILE_DATA.education.degree,
+      institution: PROFILE_DATA.education.institution,
+      year: PROFILE_DATA.education.year,
     },
     status: 'published',
     sortOrder: 0,
   })
 
-  // Hobbies (items-array pattern)
-  content.push({
-    type: 'hobbies',
-    slug: 'hobbies',
-    data: {
-      items: PROFILE_DATA.hobbies.map((h) => ({
-        name: h.name,
-        description: h.description,
-      })),
-    },
-    status: 'published',
-    sortOrder: 0,
-  })
-
-  // Skills (SkillsListDataSchema)
-  content.push({
-    type: 'skill',
-    slug: 'skills',
-    data: {
-      items: [
-        ...PROFILE_DATA.skills.languages.map((name, i) => ({
-          name,
-          category: 'language' as const,
-          proficiency: 5 - Math.floor(i / 2),
-        })),
-        ...PROFILE_DATA.skills.frameworks.map((name, i) => ({
-          name,
-          category: 'framework' as const,
-          proficiency: 5 - Math.floor(i / 3),
-        })),
-        ...PROFILE_DATA.skills.tools.map((name, i) => ({
-          name,
-          category: 'tool' as const,
-          proficiency: 4 - Math.floor(i / 4),
-        })),
-      ],
-    },
-    status: 'published',
-    sortOrder: 0,
-  })
-
-  // Projects (ProjectDataSchema)
-  PROFILE_DATA.projects.forEach((project, index) => {
+  // Experience (separate row per entry)
+  for (const [index, exp] of PROFILE_DATA.experience.entries()) {
     content.push({
-      type: 'project',
-      slug: project.slug,
+      type: 'experience',
+      slug: exp.slug,
       data: {
-        title: project.title,
-        description: project.description,
-        content: project.content,
-        tags: project.tags,
-        links: project.links,
-        featured: project.featured,
+        year: exp.year,
+        title: exp.title,
+        company: exp.company,
+        duration: exp.duration,
+        website: exp.website,
+        description: exp.description,
+        tech: exp.tech,
+        responsibilities: exp.responsibilities,
       },
       status: 'published',
       sortOrder: index,
     })
+  }
+
+  // Skills (separate row per skill)
+  for (const [index, skill] of PROFILE_DATA.skills.entries()) {
+    content.push({
+      type: 'skill',
+      slug: skill.slug,
+      data: {
+        name: skill.name,
+        context: skill.context,
+        tier: skill.tier,
+      },
+      status: 'published',
+      sortOrder: index,
+    })
+  }
+
+  // Projects (separate row per project)
+  for (const [index, project] of PROFILE_DATA.projects.entries()) {
+    const data: Record<string, unknown> = {
+      num: project.num,
+      title: project.title,
+      tags: project.tags,
+      techStack: project.techStack,
+      links: project.links,
+      descriptions: project.descriptions,
+      highlights: project.highlights,
+    }
+    if (project.techStackMobile) data.techStackMobile = project.techStackMobile
+    if (project.extraMeta) data.extraMeta = project.extraMeta
+    if (project.metaNote) data.metaNote = project.metaNote
+    if (project.highlightsTitle) data.highlightsTitle = project.highlightsTitle
+
+    content.push({
+      type: 'project',
+      slug: project.slug,
+      data,
+      status: 'published',
+      sortOrder: index,
+    })
+  }
+
+  // Hobbies (separate row per hobby)
+  for (const [index, hobby] of PROFILE_DATA.hobbies.entries()) {
+    content.push({
+      type: 'hobby',
+      slug: hobby.slug,
+      data: {
+        name: hobby.name,
+        description: hobby.description,
+      },
+      status: 'published',
+      sortOrder: index,
+    })
+  }
+
+  // Links
+  content.push({
+    type: 'link',
+    slug: 'main',
+    data: {
+      github: PROFILE_DATA.links.github,
+      linkedin: PROFILE_DATA.links.linkedin,
+      resumePath: PROFILE_DATA.links.resumePath,
+      email: PROFILE_DATA.links.email,
+    },
+    status: 'published',
+    sortOrder: 0,
   })
 
   return content

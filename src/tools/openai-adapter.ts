@@ -39,35 +39,47 @@ function filterToolResult(result: ToolResult): ToolResult {
 }
 
 /**
- * Tool definitions for OpenAI chat completions API.
- * These are read-only tools that allow the chat assistant to query portfolio data.
+ * Build tool definitions for OpenAI chat completions API.
+ * When `availableTypes` is provided, the list_content description embeds them
+ * so the LLM knows exactly which type strings to use.
  */
-export const chatToolDefinitions: FunctionDefinition[] = [
-  {
-    name: 'list_content',
-    description:
-      'List portfolio content items by type. Available types: project, experience, education, skill, about (biographical info, who Spencer is), contact, hobbies. Always call this before saying information is unavailable. Use this for broad questions, identity questions like "Who is Spencer?" with type "about", or education questions with type "education".',
-    parameters: zodToJsonSchema(ListContentInputSchema, { $refStrategy: 'none' }),
-  },
-  {
-    name: 'get_content',
-    description:
-      'Get a specific content item by type and slug. Use this when you need detailed information about a specific project, experience, or other content.',
-    parameters: zodToJsonSchema(GetContentInputSchema, { $refStrategy: 'none' }),
-  },
-  {
-    name: 'search_content',
-    description:
-      'Search portfolio content by query string. Searches across title, description, name, company, role, tags, and other fields. Use this when looking for content matching specific keywords. If the search returns no results, tell the visitor explicitly rather than guessing.',
-    parameters: zodToJsonSchema(SearchContentInputSchema, { $refStrategy: 'none' }),
-  },
-  {
-    name: 'list_types',
-    description:
-      'List all available content types and their item counts. Use this to discover what types of content exist in the portfolio.',
-    parameters: zodToJsonSchema(ListTypesInputSchema, { $refStrategy: 'none' }),
-  },
-]
+export function buildChatToolDefinitions(availableTypes?: string[]): FunctionDefinition[] {
+  const typeHint = availableTypes?.length
+    ? `Available types: ${availableTypes.join(', ')}.`
+    : 'Use list_types to discover available types.'
+
+  return [
+    {
+      name: 'list_content',
+      description:
+        `List portfolio content items by type. ${typeHint} Always call this before saying information is unavailable. Use this for broad questions, identity questions like "Who is Spencer?" with type "bio", or education questions with type "education".`,
+      parameters: zodToJsonSchema(ListContentInputSchema, { $refStrategy: 'none' }),
+    },
+    {
+      name: 'get_content',
+      description:
+        'Get a specific content item by type and slug. Use this when you need detailed information about a specific project, experience, or other content.',
+      parameters: zodToJsonSchema(GetContentInputSchema, { $refStrategy: 'none' }),
+    },
+    {
+      name: 'search_content',
+      description:
+        'Search portfolio content by query string. Searches across title, description, name, company, role, tags, and other fields. Use this when looking for content matching specific keywords. If the search returns no results, tell the visitor explicitly rather than guessing.',
+      parameters: zodToJsonSchema(SearchContentInputSchema, { $refStrategy: 'none' }),
+    },
+    {
+      name: 'list_types',
+      description:
+        'List all available content types and their item counts. Use this to discover what types of content exist in the portfolio.',
+      parameters: zodToJsonSchema(ListTypesInputSchema, { $refStrategy: 'none' }),
+    },
+  ]
+}
+
+/**
+ * Backward-compatible default export. Without types, tells the LLM to discover via list_types.
+ */
+export const chatToolDefinitions: FunctionDefinition[] = buildChatToolDefinitions()
 
 /**
  * Execute a tool call and return the result as a JSON string.

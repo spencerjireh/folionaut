@@ -25,19 +25,21 @@ vi.mock('@/repositories/content.repository', () => ({
 describe('OpenAI Adapter', () => {
   let executeToolCall: typeof import('@/tools/openai-adapter').executeToolCall
   let chatToolDefinitions: typeof import('@/tools/openai-adapter').chatToolDefinitions
+  let buildChatToolDefinitions: typeof import('@/tools/openai-adapter').buildChatToolDefinitions
 
   beforeEach(async () => {
     vi.clearAllMocks()
     const module = await import('@/tools/openai-adapter')
     executeToolCall = module.executeToolCall
     chatToolDefinitions = module.chatToolDefinitions
+    buildChatToolDefinitions = module.buildChatToolDefinitions
   })
 
   afterEach(() => {
     vi.resetModules()
   })
 
-  describe('chatToolDefinitions', () => {
+  describe('chatToolDefinitions (backward-compatible export)', () => {
     it('should have four tool definitions', () => {
       expect(chatToolDefinitions).toHaveLength(4)
     })
@@ -68,6 +70,40 @@ describe('OpenAI Adapter', () => {
       expect(searchTool).toBeDefined()
       expect(searchTool?.description).toContain('Search')
       expect(searchTool?.parameters).toBeDefined()
+    })
+
+    it('should tell LLM to use list_types when no types provided', () => {
+      const listTool = chatToolDefinitions.find((t) => t.name === 'list_content')
+      expect(listTool?.description).toContain('Use list_types to discover available types')
+    })
+  })
+
+  describe('buildChatToolDefinitions', () => {
+    it('should embed available types in list_content description', () => {
+      const defs = buildChatToolDefinitions(['bio', 'project', 'skill'])
+      const listTool = defs.find((t) => t.name === 'list_content')
+
+      expect(listTool?.description).toContain('Available types: bio, project, skill.')
+      expect(listTool?.description).not.toContain('Use list_types')
+    })
+
+    it('should fall back to list_types hint when called without arguments', () => {
+      const defs = buildChatToolDefinitions()
+      const listTool = defs.find((t) => t.name === 'list_content')
+
+      expect(listTool?.description).toContain('Use list_types to discover available types')
+    })
+
+    it('should fall back to list_types hint when passed empty array', () => {
+      const defs = buildChatToolDefinitions([])
+      const listTool = defs.find((t) => t.name === 'list_content')
+
+      expect(listTool?.description).toContain('Use list_types to discover available types')
+    })
+
+    it('should always return four tool definitions', () => {
+      expect(buildChatToolDefinitions(['bio'])).toHaveLength(4)
+      expect(buildChatToolDefinitions()).toHaveLength(4)
     })
   })
 

@@ -56,6 +56,7 @@ vi.mock('@/llm', () => ({
 }))
 
 vi.mock('@/tools', () => ({
+  buildChatToolDefinitions: vi.fn(() => []),
   chatToolDefinitions: [],
   executeToolCall: mockExecuteToolCall,
 }))

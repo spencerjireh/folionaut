@@ -20,6 +20,7 @@ export default defineConfig({
           testTimeout: 10_000,
           mockReset: true,
           restoreMocks: true,
+          sequence: { groupOrder: 1 },
         },
       },
       {
@@ -31,6 +32,7 @@ export default defineConfig({
           testTimeout: 30_000,
           maxWorkers: 1,
           isolate: false,
+          sequence: { groupOrder: 2 },
         },
       },
     ],

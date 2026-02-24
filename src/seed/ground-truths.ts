@@ -5,6 +5,24 @@
 
 import { PROFILE_DATA } from './data'
 
+// --- Skill classification ---
+// Skills are stored flat with tiers in prod. These sets classify them
+// by traditional category for eval assertions that ask about
+// "programming languages", "frameworks", or "databases".
+
+const LANGUAGE_NAMES = new Set([
+  'Python', 'JavaScript/TypeScript', 'Java', 'C++', 'PHP',
+])
+
+const FRAMEWORK_NAMES = new Set([
+  'React', 'Next.js', 'Node.js', 'FastAPI', 'Spring Boot',
+  'NestJS', 'Express', 'LangChain', 'LangGraph', 'Scikit-learn',
+])
+
+const DATABASE_NAMES = new Set([
+  'PostgreSQL', 'MongoDB',
+])
+
 /**
  * Computed ground truth statements derived from profile data.
  */
@@ -14,7 +32,7 @@ export const groundTruths = {
    */
   get currentEmployer(): string {
     const exp = PROFILE_DATA.experience[0]
-    return `${PROFILE_DATA.name.split(' ')[0]} currently works at ${exp.company} as a ${exp.role}.`
+    return `${PROFILE_DATA.bio.firstName} currently works at ${exp.company} as a ${exp.title}.`
   },
 
   /**
@@ -28,52 +46,56 @@ export const groundTruths = {
    * Current role title.
    */
   get currentRole(): string {
-    return PROFILE_DATA.experience[0].role
+    return PROFILE_DATA.experience[0].title
   },
 
   /**
-   * List of programming languages.
+   * List of programming languages (classified from flat skills).
    */
   get programmingLanguages(): string[] {
-    return [...PROFILE_DATA.skills.languages]
+    return PROFILE_DATA.skills
+      .filter((s) => LANGUAGE_NAMES.has(s.name))
+      .map((s) => s.name)
   },
 
   /**
-   * List of frameworks.
+   * List of frameworks (classified from flat skills).
    */
   get frameworks(): string[] {
-    return [...PROFILE_DATA.skills.frameworks]
+    return PROFILE_DATA.skills
+      .filter((s) => FRAMEWORK_NAMES.has(s.name))
+      .map((s) => s.name)
   },
 
   /**
-   * List of databases from tools.
+   * List of databases (classified from flat skills).
    */
   get databases(): string[] {
-    return PROFILE_DATA.skills.tools.filter((t) =>
-      ['PostgreSQL', 'MySQL', 'MongoDB', 'Redis'].includes(t)
-    )
+    return PROFILE_DATA.skills
+      .filter((s) => DATABASE_NAMES.has(s.name))
+      .map((s) => s.name)
   },
 
   /**
-   * All tools.
+   * All skills.
    */
-  get tools(): string[] {
-    return [...PROFILE_DATA.skills.tools]
+  get allSkills(): string[] {
+    return PROFILE_DATA.skills.map((s) => s.name)
   },
 
   /**
    * Education summary.
    */
   get education(): string {
-    const edu = PROFILE_DATA.education[0]
-    return `${edu.degree} in ${edu.field} from ${edu.institution}`
+    const edu = PROFILE_DATA.education
+    return `${edu.degree} from ${edu.institution}`
   },
 
   /**
    * Education institution name.
    */
   get educationInstitution(): string {
-    return PROFILE_DATA.education[0].institution
+    return PROFILE_DATA.education.institution
   },
 
   /**
@@ -87,28 +109,28 @@ export const groundTruths = {
    * Full name.
    */
   get fullName(): string {
-    return PROFILE_DATA.name
+    return `${PROFILE_DATA.bio.firstName} ${PROFILE_DATA.bio.lastName}`
   },
 
   /**
    * First name only.
    */
   get firstName(): string {
-    return PROFILE_DATA.name.split(' ')[0]
+    return PROFILE_DATA.bio.firstName.split(' ')[0]
   },
 
   /**
    * Public contact email.
    */
   get email(): string {
-    return PROFILE_DATA.email
+    return PROFILE_DATA.contact.email
   },
 
   /**
-   * Experience start date.
+   * Experience duration string (e.g. "July 2024 - Present").
    */
-  get experienceStartDate(): string {
-    return PROFILE_DATA.experience[0].startDate
+  get experienceDuration(): string {
+    return PROFILE_DATA.experience[0].duration
   },
 
   /**
@@ -119,67 +141,60 @@ export const groundTruths = {
   },
 
   /**
-   * Project descriptions keyed by slug.
+   * Project descriptions keyed by slug (first description).
    */
   get projectDescriptions(): Record<string, string> {
-    return Object.fromEntries(PROFILE_DATA.projects.map((p) => [p.slug, p.description]))
+    return Object.fromEntries(
+      PROFILE_DATA.projects.map((p) => [p.slug, p.descriptions[0] ?? ''])
+    )
   },
 
   /**
    * Project tags keyed by slug.
    */
   get projectTags(): Record<string, string[]> {
-    return Object.fromEntries(PROFILE_DATA.projects.map((p) => [p.slug, p.tags]))
+    return Object.fromEntries(
+      PROFILE_DATA.projects.map((p) => [p.slug, p.tags])
+    )
   },
 
   /**
-   * Skills from the Java Intern experience entry.
+   * Tech from the intern experience entry.
    */
-  get internSkills(): string[] {
-    const intern = PROFILE_DATA.experience.find((e) => e.role.toLowerCase().includes('intern'))
-    return intern ? [...intern.skills] : []
+  get internTech(): string[] {
+    const intern = PROFILE_DATA.experience.find((e) => e.title.toLowerCase().includes('intern'))
+    return intern ? [...intern.tech] : []
   },
 
   /**
-   * Skills from the current (first) experience entry.
+   * Tech from the current (first) experience entry.
    */
-  get currentRoleSkills(): string[] {
-    return [...PROFILE_DATA.experience[0].skills]
+  get currentRoleTech(): string[] {
+    return [...PROFILE_DATA.experience[0].tech]
   },
 
   /**
    * Social links (LinkedIn and GitHub).
    */
   get socialLinks(): { linkedin: string; github: string } {
-    return { ...PROFILE_DATA.social }
+    return {
+      linkedin: PROFILE_DATA.contact.linkedin,
+      github: PROFILE_DATA.contact.github,
+    }
   },
 
   /**
-   * Education field of study.
+   * Education degree string (e.g. "BS Computer Science").
    */
-  get educationField(): string {
-    return PROFILE_DATA.education[0].field
+  get educationDegree(): string {
+    return PROFILE_DATA.education.degree
   },
 
   /**
-   * Education degree type (e.g. "BS").
+   * Education year.
    */
-  get educationDegreeType(): string {
-    return PROFILE_DATA.education[0].degree
-  },
-
-  /**
-   * Education location.
-   */
-  get educationLocation(): string {
-    return PROFILE_DATA.education[0].location ?? ''
-  },
-
-  /**
-   * Portfolio website URL.
-   */
-  get website(): string {
-    return PROFILE_DATA.website
+  get educationYear(): string {
+    return PROFILE_DATA.education.year
   },
 
   /**
@@ -193,7 +208,7 @@ export const groundTruths = {
    * Description text from the intern role.
    */
   get internRoleDescription(): string {
-    const intern = PROFILE_DATA.experience.find((e) => e.role.toLowerCase().includes('intern'))
+    const intern = PROFILE_DATA.experience.find((e) => e.title.toLowerCase().includes('intern'))
     return intern?.description ?? ''
   },
 
@@ -229,43 +244,53 @@ export const assertionRegex = {
    * Matches any programming language from the profile.
    */
   anyLanguage(): string {
-    return PROFILE_DATA.skills.languages.map((l) => l.toLowerCase()).join('|')
+    return PROFILE_DATA.skills
+      .filter((s) => LANGUAGE_NAMES.has(s.name))
+      .map((s) => s.name.toLowerCase().replace(/[+]/g, '\\+').replace(/[/]/g, '|'))
+      .join('|')
   },
 
   /**
    * Matches any framework from the profile.
    */
   anyFramework(): string {
-    return PROFILE_DATA.skills.frameworks.map((f) => f.toLowerCase().replace('.', '\\.')).join('|')
+    return PROFILE_DATA.skills
+      .filter((s) => FRAMEWORK_NAMES.has(s.name))
+      .map((s) => s.name.toLowerCase().replace('.', '\\.'))
+      .join('|')
   },
 
   /**
    * Matches any database from the profile.
    */
   anyDatabase(): string {
-    return groundTruths.databases.map((d) => d.toLowerCase()).join('|')
+    return PROFILE_DATA.skills
+      .filter((s) => DATABASE_NAMES.has(s.name))
+      .map((s) => s.name.toLowerCase())
+      .join('|')
   },
 
   /**
-   * Matches any tool from the profile.
+   * Matches any skill from the profile.
    */
-  anyTool(): string {
-    return PROFILE_DATA.skills.tools.map((t) => t.toLowerCase().replace(/[.+]/g, '\\$&')).join('|')
+  anySkill(): string {
+    return PROFILE_DATA.skills
+      .map((s) => s.name.toLowerCase().replace(/[.+/]/g, '\\$&'))
+      .join('|')
   },
 
   /**
    * Matches the education institution.
    */
   educationInstitution(): string {
-    return PROFILE_DATA.education[0].institution.toLowerCase().replace(/\s+/g, '\\s*')
+    return PROFILE_DATA.education.institution.toLowerCase().replace(/\s+/g, '\\s*')
   },
 
   /**
-   * Matches the education degree and field.
+   * Matches the education degree.
    */
   educationDegree(): string {
-    const edu = PROFILE_DATA.education[0]
-    return `${edu.degree}|${edu.field}|computer\\s*science`.toLowerCase()
+    return `${PROFILE_DATA.education.degree}|computer\\s*science`.toLowerCase()
   },
 
   /**
@@ -286,18 +311,18 @@ export const assertionRegex = {
   },
 
   /**
-   * Matches any skill from the intern role.
+   * Matches any tech from the intern role.
    */
   internSkill(): string {
-    const intern = PROFILE_DATA.experience.find((e) => e.role.toLowerCase().includes('intern'))
-    return (intern?.skills ?? []).map((s) => s.toLowerCase().replace(/[.+]/g, '\\$&')).join('|')
+    const intern = PROFILE_DATA.experience.find((e) => e.title.toLowerCase().includes('intern'))
+    return (intern?.tech ?? []).map((s) => s.toLowerCase().replace(/[.+]/g, '\\$&')).join('|')
   },
 
   /**
-   * Matches any skill from the current role.
+   * Matches any tech from the current role.
    */
   currentRoleSkill(): string {
-    return PROFILE_DATA.experience[0].skills
+    return PROFILE_DATA.experience[0].tech
       .map((s) => s.toLowerCase().replace(/[.+]/g, '\\$&'))
       .join('|')
   },
@@ -315,7 +340,7 @@ export const assertionRegex = {
    * Matches LinkedIn or GitHub URL.
    */
   socialLink(): string {
-    return [PROFILE_DATA.social.linkedin, PROFILE_DATA.social.github]
+    return [PROFILE_DATA.contact.linkedin, PROFILE_DATA.contact.github]
       .map((u) => u.replace(/[/.+?]/g, '\\$&'))
       .join('|')
   },

@@ -18,7 +18,7 @@ interface SeedContent extends CreateContentDto {
  * Content is derived from the single source of truth in @/seed.
  */
 export function getAllSeedContent(): SeedContent[] {
-  return deriveSeedContent().map((content, i) => ({
+  return deriveSeedContent().map((content) => ({
     ...content,
     id: `${EVAL_CONTENT_PREFIX}${content.type}_${content.slug}`,
     version: 1,
@@ -53,12 +53,12 @@ export function createSeedSkill(overrides: Partial<SeedContent> = {}): SeedConte
 }
 
 /**
- * Creates seed about content for evaluation.
+ * Creates seed bio content for evaluation.
  * @deprecated Use getAllSeedContent() instead
  */
-export function createSeedAbout(overrides: Partial<SeedContent> = {}): SeedContent {
-  const about = getAllSeedContent().filter((c) => c.type === 'about')
-  return { ...about[0], ...overrides }
+export function createSeedBio(overrides: Partial<SeedContent> = {}): SeedContent {
+  const bio = getAllSeedContent().filter((c) => c.type === 'bio')
+  return { ...bio[0], ...overrides }
 }
 
 /**
@@ -74,14 +74,20 @@ export const defaultSeed = {
   get skills() {
     return getAllSeedContent().filter((c) => c.type === 'skill')
   },
-  get about() {
-    return getAllSeedContent().filter((c) => c.type === 'about')
+  get bio() {
+    return getAllSeedContent().filter((c) => c.type === 'bio')
   },
   get education() {
     return getAllSeedContent().filter((c) => c.type === 'education')
   },
   get contact() {
     return getAllSeedContent().filter((c) => c.type === 'contact')
+  },
+  get hobbies() {
+    return getAllSeedContent().filter((c) => c.type === 'hobby')
+  },
+  get links() {
+    return getAllSeedContent().filter((c) => c.type === 'link')
   },
 }
 

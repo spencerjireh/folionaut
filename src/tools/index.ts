@@ -21,4 +21,4 @@ export {
 } from './core'
 
 // OpenAI adapter
-export { chatToolDefinitions, executeToolCall } from './openai-adapter'
+export { buildChatToolDefinitions, chatToolDefinitions, executeToolCall } from './openai-adapter'
