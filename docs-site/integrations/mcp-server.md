@@ -84,7 +84,10 @@ List all distinct content types that exist in the database.
 // No input parameters
 
 interface ListTypesOutput {
-  types: string[]    // e.g., ["project", "experience", "blog-post", "certification"]
+  types: Array<{
+    type: string     // e.g., "project", "experience", "blog-post"
+    count: number    // number of items of this type
+  }>
 }
 ```
 
@@ -175,6 +178,10 @@ interface SearchContentOutput {
     type: string
     data: Record<string, unknown>
     status: string
+    version: number
+    sortOrder: number
+    createdAt: string
+    updatedAt: string
   }>
 }
 ```

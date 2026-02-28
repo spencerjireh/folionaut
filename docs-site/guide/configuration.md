@@ -13,8 +13,19 @@ Folionaut is configured via environment variables. This page documents all avail
 |----------|-------------|---------|
 | `TURSO_DATABASE_URL` | Turso database URL | `libsql://db-name.turso.io` |
 | `TURSO_AUTH_TOKEN` | Turso authentication token | `eyJ...` |
-| `ADMIN_API_KEY` | API key for admin endpoints (min 32 chars) | `secure-random-string-at-least-32-chars` |
-| `LLM_API_KEY` | LLM provider API key | `sk-...` |
+
+### Conditionally Required
+
+These are required only when their corresponding feature flags are enabled (all enabled by default):
+
+| Variable | Required When | Description | Example |
+|----------|---------------|-------------|---------|
+| `ADMIN_API_KEY` | `FEATURE_ADMIN_API` or `FEATURE_MCP_SERVER` enabled | API key for admin endpoints (min 32 chars) | `secure-random-string-at-least-32-chars` |
+| `LLM_API_KEY` | `FEATURE_AI_CHAT` enabled | LLM provider API key | `sk-...` |
+
+::: tip
+If you only need the public content endpoints, you can disable `FEATURE_AI_CHAT`, `FEATURE_ADMIN_API`, and `FEATURE_MCP_SERVER` and skip both keys entirely.
+:::
 
 ## Optional Variables
 
@@ -57,7 +68,7 @@ If `REDIS_URL` is not set, the application falls back to in-memory caching. This
 | `LLM_PROVIDER` | `openai` | LLM provider (currently only `openai` supported) |
 | `LLM_BASE_URL` | - | Custom OpenAI-compatible endpoint URL |
 | `LLM_MODEL` | `gpt-4o-mini` | Model to use for chat |
-| `LLM_MAX_TOKENS` | `1000` | Maximum response tokens |
+| `LLM_MAX_TOKENS` | `2000` | Maximum response tokens |
 | `LLM_TEMPERATURE` | `0.7` | Response temperature (0-1) |
 | `LLM_REQUEST_TIMEOUT_MS` | `30000` | LLM request timeout in milliseconds |
 | `LLM_MAX_RETRIES` | `3` | Maximum retry attempts for LLM calls |
@@ -86,6 +97,22 @@ When `OTEL_ENABLED=true`, the OpenTelemetry SDK reads these standard environment
 | `OTEL_SERVICE_NAME` | `folionaut` | Service name in traces (hardcoded, but SDK allows override) |
 
 See [OpenTelemetry Environment Variables](https://opentelemetry.io/docs/specs/otel/configuration/sdk-environment-variables/) for the full list of SDK configuration options.
+
+### Feature Flags
+
+Feature flags allow you to enable or disable major subsystems. All are enabled by default.
+
+| Variable | Default | Description |
+|----------|---------|-------------|
+| `FEATURE_AI_CHAT` | `true` | Enable the `POST /api/v1/chat` endpoint. When disabled, `LLM_API_KEY` is not required. |
+| `FEATURE_MCP_SERVER` | `true` | Enable the MCP server (stdio and HTTP transports). When disabled, `ADMIN_API_KEY` is not required for this feature. |
+| `FEATURE_ADMIN_API` | `true` | Enable admin CRUD endpoints. When disabled, `ADMIN_API_KEY` is not required for this feature. |
+| `FEATURE_RATE_LIMITING` | `true` | Enable token bucket rate limiting on chat and content endpoints. |
+| `FEATURE_AUDIT_LOG` | `true` | Enable content version history tracking in the `content_history` table. |
+
+::: info
+`ADMIN_API_KEY` (min 32 chars) is validated at startup when either `FEATURE_ADMIN_API` or `FEATURE_MCP_SERVER` is enabled. `LLM_API_KEY` is validated when `FEATURE_AI_CHAT` is enabled.
+:::
 
 ## Example `.env` File
 
@@ -116,7 +143,7 @@ CONTENT_RATE_LIMIT_REFILL_RATE=10
 LLM_PROVIDER=openai
 LLM_BASE_URL=https://api.openai.com/v1
 LLM_MODEL=gpt-4o-mini
-LLM_MAX_TOKENS=1000
+LLM_MAX_TOKENS=2000
 LLM_TEMPERATURE=0.7
 LLM_REQUEST_TIMEOUT_MS=30000
 LLM_MAX_RETRIES=3

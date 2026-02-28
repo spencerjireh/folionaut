@@ -52,7 +52,7 @@ All content items share these fields:
 
 | Field | Type | Required | Description |
 |-------|------|----------|-------------|
-| `id` | UUID | Auto | Unique identifier |
+| `id` | string | Auto | Prefixed nanoid (e.g., `content_abc123`) |
 | `type` | string | Yes | Free-form string matching `/^[a-z0-9-]+$/` (max 100 chars) |
 | `slug` | string | Yes | URL-friendly identifier (unique per type) |
 | `data` | JSON | Yes | Any JSON object (structure is up to you) |

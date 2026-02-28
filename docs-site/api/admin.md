@@ -168,6 +168,96 @@ Returns the content item wrapped in `{ "data": {...} }` with the restored data a
 | GET | `/api/v1/admin/chat/sessions/:id` | Get session with messages |
 | DELETE | `/api/v1/admin/chat/sessions/:id` | End/delete session |
 
+### GET /admin/chat/sessions
+
+List chat sessions with optional filtering.
+
+**Query Parameters**
+
+| Parameter | Type | Default | Description |
+|-----------|------|---------|-------------|
+| `status` | string | - | Filter by status: `active`, `ended`, or `expired` |
+| `limit` | integer | `50` | Maximum sessions to return (1-100) |
+| `offset` | integer | `0` | Number of sessions to skip (for pagination) |
+
+**Response**
+
+```json
+{
+  "data": [
+    {
+      "id": "sess_abc123",
+      "visitorId": "visitor-unique-id",
+      "ipHash": "hashed-ip",
+      "userAgent": "Mozilla/5.0...",
+      "messageCount": 5,
+      "status": "active",
+      "createdAt": "2025-01-25T10:00:00Z",
+      "lastActiveAt": "2025-01-25T10:05:00Z",
+      "expiresAt": "2025-01-25T11:00:00Z"
+    }
+  ]
+}
+```
+
+### GET /admin/chat/sessions/:id
+
+Get a single session with all its messages.
+
+**Path Parameters**
+
+| Parameter | Type | Description |
+|-----------|------|-------------|
+| `id` | string | Session ID (must start with `sess_`) |
+
+**Response**
+
+```json
+{
+  "data": {
+    "id": "sess_abc123",
+    "visitorId": "visitor-unique-id",
+    "ipHash": "hashed-ip",
+    "userAgent": "Mozilla/5.0...",
+    "messageCount": 2,
+    "status": "active",
+    "createdAt": "2025-01-25T10:00:00Z",
+    "lastActiveAt": "2025-01-25T10:05:00Z",
+    "expiresAt": "2025-01-25T11:00:00Z",
+    "messages": [
+      {
+        "id": "msg_xyz789",
+        "sessionId": "sess_abc123",
+        "role": "user",
+        "content": "Tell me about your projects",
+        "tokensUsed": null,
+        "model": null,
+        "createdAt": "2025-01-25T10:00:00Z"
+      },
+      {
+        "id": "msg_xyz790",
+        "sessionId": "sess_abc123",
+        "role": "assistant",
+        "content": "I have several projects...",
+        "tokensUsed": 150,
+        "model": "gpt-4o-mini",
+        "createdAt": "2025-01-25T10:00:01Z"
+      }
+    ]
+  }
+}
+```
+
+### DELETE /admin/chat/sessions/:id
+
+End a chat session.
+
+**Path Parameters**
+
+| Parameter | Type | Description |
+|-----------|------|-------------|
+| `id` | string | Session ID (must start with `sess_`) |
+
 ## See Also
 
 - [Content Endpoints](/api/content) - Public content retrieval
